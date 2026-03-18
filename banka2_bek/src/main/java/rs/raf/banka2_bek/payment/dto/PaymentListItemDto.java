@@ -15,6 +15,7 @@ public class PaymentListItemDto {
     String fromAccount;
     String toAccount;
     BigDecimal amount;
+    PaymentDirection direction;
     PaymentStatus status;
     LocalDateTime createdAt;
 }

@@ -1,6 +1,8 @@
 package rs.raf.banka2_bek.payment.controller;
 
 import jakarta.persistence.EntityManager;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,11 +11,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 import rs.raf.banka2_bek.account.model.Account;
@@ -23,23 +27,30 @@ import rs.raf.banka2_bek.auth.model.User;
 import rs.raf.banka2_bek.auth.repository.PasswordResetTokenRepository;
 import rs.raf.banka2_bek.auth.repository.UserRepository;
 import rs.raf.banka2_bek.auth.service.JwtService;
+import rs.raf.banka2_bek.client.model.Client;
+import rs.raf.banka2_bek.client.repository.ClientRepository;
 import rs.raf.banka2_bek.currency.model.Currency;
 import rs.raf.banka2_bek.employee.model.Employee;
 import rs.raf.banka2_bek.employee.repository.ActivationTokenRepository;
 import rs.raf.banka2_bek.employee.repository.EmployeeRepository;
-import rs.raf.banka2_bek.payment.repository.AccountRepository;
+import rs.raf.banka2_bek.exchange.ExchangeService;
+import rs.raf.banka2_bek.exchange.dto.ExchangeRateDto;
+import rs.raf.banka2_bek.payment.repository.PaymentAccountRepository;
 import rs.raf.banka2_bek.payment.repository.PaymentRepository;
 import rs.raf.banka2_bek.transaction.repository.TransactionRepository;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
-//TODO: ne dodavati brisanje testova tudjih u commit
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -57,6 +68,9 @@ class PaymentControllerIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
+    private ClientRepository clientRepository;
+
+    @Autowired
     private EmployeeRepository employeeRepository;
 
     @Autowired
@@ -66,7 +80,7 @@ class PaymentControllerIntegrationTest {
     private PasswordResetTokenRepository passwordResetTokenRepository;
 
     @Autowired
-    private AccountRepository accountRepository;
+    private PaymentAccountRepository paymentAccountRepository;
 
     @Autowired
     private PaymentRepository paymentRepository;
@@ -80,8 +94,16 @@ class PaymentControllerIntegrationTest {
     @Autowired
     private EntityManager entityManager;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @MockitoBean
+    private ExchangeService exchangeService;
+
     @BeforeEach
     void cleanDatabase() {
+        when(exchangeService.getAllRates()).thenReturn(fixedRates());
+
         restTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
             @Override
             public boolean hasError(ClientHttpResponse response) throws IOException {
@@ -91,18 +113,19 @@ class PaymentControllerIntegrationTest {
 
         transactionRepository.deleteAll();
         paymentRepository.deleteAll();
-        accountRepository.deleteAll();
+        paymentAccountRepository.deleteAll();
         passwordResetTokenRepository.deleteAll();
         activationTokenRepository.deleteAll();
         employeeRepository.deleteAll();
         userRepository.deleteAll();
+        clientRepository.deleteAll();
         jdbcTemplate.update("delete from currencies");
     }
 
     @Test
     void createPayment_sameCurrency_returnsCreatedAndPersistsSettlement() {
-        User sender = createUser("sender.same@test.com");
-        User receiver = createUser("receiver.same@test.com");
+        Client sender = createClient("sender.same@test.com");
+        Client receiver = createClient("receiver.same@test.com");
         Employee employee = createEmployee("employee.same@test.com", "employee.same");
         Currency eur = ensureCurrency("EUR", "Euro", "E", "EU");
 
@@ -123,17 +146,20 @@ class PaymentControllerIntegrationTest {
                 }
                 """.formatted(fromNumber, toNumber);
 
+        User senderUser = createAuthUserForClient(sender);
+
         ResponseEntity<String> response = restTemplate.postForEntity(
                 url("/payments"),
-                new HttpEntity<>(payload, jsonHeaders(jwtService.generateAccessToken(sender))),
+                new HttpEntity<>(payload, jsonHeaders(jwtService.generateAccessToken(senderUser))),
                 String.class
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody()).contains("\"status\":\"COMPLETED\"");
+        assertThat(response.getBody()).contains("\"direction\":\"OUTGOING\"");
 
-        Account fromAfter = accountRepository.findByAccountNumber(fromNumber).orElseThrow();
-        Account toAfter = accountRepository.findByAccountNumber(toNumber).orElseThrow();
+        Account fromAfter = paymentAccountRepository.findByAccountNumber(fromNumber).orElseThrow();
+        Account toAfter = paymentAccountRepository.findByAccountNumber(toNumber).orElseThrow();
 
         assertThat(fromAfter.getBalance()).isEqualByComparingTo("900.00000");
         assertThat(fromAfter.getAvailableBalance()).isEqualByComparingTo("900.00000");
@@ -149,8 +175,8 @@ class PaymentControllerIntegrationTest {
 
     @Test
     void createPayment_crossCurrency_returnsCreatedAndAppliesFeeAndFxRate() {
-        User sender = createUser("sender.fx@test.com");
-        User receiver = createUser("receiver.fx@test.com");
+        Client sender = createClient("sender.fx@test.com");
+        Client receiver = createClient("receiver.fx@test.com");
         Employee employee = createEmployee("employee.fx@test.com", "employee.fx");
         Currency eur = ensureCurrency("EUR", "Euro", "E", "EU");
         Currency usd = ensureCurrency("USD", "US Dollar", "$", "US");
@@ -172,25 +198,33 @@ class PaymentControllerIntegrationTest {
                 }
                 """.formatted(fromNumber, toNumber);
 
+        User senderUser = createAuthUserForClient(sender);
+
         ResponseEntity<String> response = restTemplate.postForEntity(
                 url("/payments"),
-                new HttpEntity<>(payload, jsonHeaders(jwtService.generateAccessToken(sender))),
+                new HttpEntity<>(payload, jsonHeaders(jwtService.generateAccessToken(senderUser))),
                 String.class
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody()).contains("\"status\":\"COMPLETED\"");
+        assertThat(response.getBody()).contains("\"direction\":\"OUTGOING\"");
 
-        Account fromAfter = accountRepository.findByAccountNumber(fromNumber).orElseThrow();
-        Account toAfter = accountRepository.findByAccountNumber(toNumber).orElseThrow();
+        Account fromAfter = paymentAccountRepository.findByAccountNumber(fromNumber).orElseThrow();
+        Account toAfter = paymentAccountRepository.findByAccountNumber(toNumber).orElseThrow();
 
         // 0.5% fee on 100.00 => total debit 100.50000
         assertThat(fromAfter.getBalance()).isEqualByComparingTo("899.50000");
         assertThat(fromAfter.getAvailableBalance()).isEqualByComparingTo("899.50000");
 
-        // Stored with scale 4 in DB => 608.0184
-        assertThat(toAfter.getBalance()).isEqualByComparingTo("608.0184");
-        assertThat(toAfter.getAvailableBalance()).isEqualByComparingTo("608.0184");
+        BigDecimal expectedFxRate = getFxRate("EUR", "USD");
+        BigDecimal expectedConverted = new BigDecimal("100.00")
+                .multiply(expectedFxRate)
+                .setScale(4, RoundingMode.HALF_UP);
+        BigDecimal expectedToBalance = new BigDecimal("500.00").add(expectedConverted);
+
+        assertThat(toAfter.getBalance()).isEqualByComparingTo(expectedToBalance);
+        assertThat(toAfter.getAvailableBalance()).isEqualByComparingTo(expectedToBalance);
 
         assertThat(paymentRepository.count()).isEqualTo(1);
         assertThat(transactionRepository.count()).isEqualTo(2);
@@ -219,7 +253,7 @@ class PaymentControllerIntegrationTest {
 
     @Test
     void createPayment_returnsBadRequestWhenPayloadIsInvalid() {
-        User sender = createUser("sender.invalid@test.com");
+        Client sender = createClient("sender.invalid@test.com");
         Employee employee = createEmployee("employee.invalid@test.com", "employee.invalid");
         Currency eur = ensureCurrency("EUR", "Euro", "E", "EU");
 
@@ -235,9 +269,11 @@ class PaymentControllerIntegrationTest {
                 }
                 """;
 
+        User senderUser = createAuthUserForClient(sender);
+
         ResponseEntity<String> response = restTemplate.postForEntity(
                 url("/payments"),
-                new HttpEntity<>(payload, jsonHeaders(jwtService.generateAccessToken(sender))),
+                new HttpEntity<>(payload, jsonHeaders(jwtService.generateAccessToken(senderUser))),
                 String.class
         );
 
@@ -247,8 +283,8 @@ class PaymentControllerIntegrationTest {
 
     @Test
     void createPayment_returnsBadRequestWhenInsufficientFunds() {
-        User sender = createUser("sender.low@test.com");
-        User receiver = createUser("receiver.low@test.com");
+        Client sender = createClient("sender.low@test.com");
+        Client receiver = createClient("receiver.low@test.com");
         Employee employee = createEmployee("employee.low@test.com", "employee.low");
         Currency eur = ensureCurrency("EUR", "Euro", "E", "EU");
 
@@ -269,22 +305,196 @@ class PaymentControllerIntegrationTest {
                 }
                 """.formatted(fromNumber, toNumber);
 
+        User senderUser = createAuthUserForClient(sender);
+
         ResponseEntity<String> response = restTemplate.postForEntity(
                 url("/payments"),
-                new HttpEntity<>(payload, jsonHeaders(jwtService.generateAccessToken(sender))),
+                new HttpEntity<>(payload, jsonHeaders(jwtService.generateAccessToken(senderUser))),
                 String.class
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).contains("Insufficient funds");
 
-        Account fromAfter = accountRepository.findByAccountNumber(fromNumber).orElseThrow();
-        Account toAfter = accountRepository.findByAccountNumber(toNumber).orElseThrow();
+        Account fromAfter = paymentAccountRepository.findByAccountNumber(fromNumber).orElseThrow();
+        Account toAfter = paymentAccountRepository.findByAccountNumber(toNumber).orElseThrow();
 
         assertThat(fromAfter.getBalance()).isEqualByComparingTo("20.00");
         assertThat(toAfter.getBalance()).isEqualByComparingTo("500.00");
         assertThat(paymentRepository.count()).isEqualTo(0);
         assertThat(transactionRepository.count()).isEqualTo(0);
+    }
+
+    @Test
+    void createPayment_returnsBadRequestWhenDestinationAccountDoesNotExist() {
+        Client sender = createClient("sender.missing.to@test.com");
+        Employee employee = createEmployee("employee.missing.to@test.com", "employee.missing.to");
+        Currency eur = ensureCurrency("EUR", "Euro", "E", "EU");
+
+        String fromNumber = "909090909090909090";
+        String missingToNumber = "919191919191919191";
+
+        createAccount(fromNumber, sender, employee, eur, new BigDecimal("1000.00"));
+
+        String payload = """
+                {
+                  "fromAccount": "%s",
+                  "toAccount": "%s",
+                  "amount": 100.00,
+                  "paymentCode": "289",
+                  "referenceNumber": "REF-NOT-FOUND",
+                  "description": "Destination account missing"
+                }
+                """.formatted(fromNumber, missingToNumber);
+
+        User senderUser = createAuthUserForClient(sender);
+
+        ResponseEntity<String> response = restTemplate.postForEntity(
+                url("/payments"),
+                new HttpEntity<>(payload, jsonHeaders(jwtService.generateAccessToken(senderUser))),
+                String.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).contains("Destination account does not exist");
+
+        Account fromAfter = paymentAccountRepository.findByAccountNumber(fromNumber).orElseThrow();
+
+        assertThat(fromAfter.getBalance()).isEqualByComparingTo("1000.00");
+        assertThat(fromAfter.getAvailableBalance()).isEqualByComparingTo("1000.00");
+        assertThat(paymentRepository.count()).isEqualTo(0);
+        assertThat(transactionRepository.count()).isEqualTo(0);
+    }
+
+    @Test
+    void getPayments_returnsOnlyAuthenticatedClientPayments_andAppliesFilters() throws Exception {
+        Client sender = createClient("sender.list@test.com");
+        Client receiver = createClient("receiver.list@test.com");
+        Client outsider = createClient("outsider.list@test.com");
+        Employee employee = createEmployee("employee.list@test.com", "employee.list");
+        Currency eur = ensureCurrency("EUR", "Euro", "E", "EU");
+
+        String senderFrom = "101010101010101010";
+        String senderTo = "202020202020202020";
+        String outsiderFrom = "303030303030303030";
+        String outsiderTo = "404040404040404040";
+
+        createAccount(senderFrom, sender, employee, eur, new BigDecimal("2000.00"));
+        createAccount(senderTo, receiver, employee, eur, new BigDecimal("500.00"));
+        createAccount(outsiderFrom, outsider, employee, eur, new BigDecimal("2000.00"));
+        createAccount(outsiderTo, receiver, employee, eur, new BigDecimal("500.00"));
+
+        User senderUser = createAuthUserForClient(sender);
+        User outsiderUser = createAuthUserForClient(outsider);
+
+        String senderToken = jwtService.generateAccessToken(senderUser);
+        String outsiderToken = jwtService.generateAccessToken(outsiderUser);
+
+        postPayment(senderFrom, senderTo, new BigDecimal("100.00"), senderToken, "REF-LIST-1");
+        postPayment(senderFrom, senderTo, new BigDecimal("300.00"), senderToken, "REF-LIST-2");
+        postPayment(outsiderFrom, outsiderTo, new BigDecimal("250.00"), outsiderToken, "REF-LIST-3");
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                url("/payments?minAmount=250&status=COMPLETED"),
+                HttpMethod.GET,
+                new HttpEntity<>(jsonHeaders(senderToken)),
+                String.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        JsonNode root = objectMapper.readTree(response.getBody());
+        JsonNode content = root.path("content");
+        assertThat(content.isArray()).isTrue();
+        assertThat(content).hasSize(1);
+        assertThat(content.get(0).path("fromAccount").asText()).isEqualTo(senderFrom);
+        assertThat(content.get(0).path("amount").decimalValue()).isEqualByComparingTo("300.00");
+        assertThat(content.get(0).path("direction").asText()).isEqualTo("OUTGOING");
+        assertThat(content.get(0).path("status").asText()).isEqualTo("COMPLETED");
+    }
+
+    @Test
+    void getPaymentHistory_returnsTransactionsAndAppliesTypeAndAmountFilters() throws Exception {
+        Client sender = createClient("sender.history@test.com");
+        Client receiver = createClient("receiver.history@test.com");
+        Employee employee = createEmployee("employee.history@test.com", "employee.history");
+        Currency eur = ensureCurrency("EUR", "Euro", "E", "EU");
+
+        String fromAccount = "505050505050505050";
+        String toAccount = "606060606060606060";
+
+        createAccount(fromAccount, sender, employee, eur, new BigDecimal("3000.00"));
+        createAccount(toAccount, receiver, employee, eur, new BigDecimal("100.00"));
+
+        User senderUser = createAuthUserForClient(sender);
+
+        String token = jwtService.generateAccessToken(senderUser);
+
+        postPayment(fromAccount, toAccount, new BigDecimal("80.00"), token, "REF-HIST-1");
+        postPayment(fromAccount, toAccount, new BigDecimal("220.00"), token, "REF-HIST-2");
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                url("/payments/history?type=PAYMENT&maxAmount=100"),
+                HttpMethod.GET,
+                new HttpEntity<>(jsonHeaders(token)),
+                String.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        JsonNode root = objectMapper.readTree(response.getBody());
+        JsonNode content = root.path("content");
+        assertThat(content.isArray()).isTrue();
+        assertThat(content).hasSize(1);
+        assertThat(content.get(0).path("type").asText()).isEqualTo("PAYMENT");
+        assertThat(content.get(0).path("direction").asText()).isEqualTo("OUTGOING");
+        assertThat(content.get(0).path("debit").decimalValue()).isEqualByComparingTo("80.00");
+    }
+
+    @Test
+    void getEndpoints_rejectWhenUnauthenticated() {
+        ResponseEntity<String> paymentsResponse = restTemplate.exchange(
+                url("/payments"),
+                HttpMethod.GET,
+                new HttpEntity<>(jsonHeaders(null)),
+                String.class
+        );
+
+        ResponseEntity<String> historyResponse = restTemplate.exchange(
+                url("/payments/history"),
+                HttpMethod.GET,
+                new HttpEntity<>(jsonHeaders(null)),
+                String.class
+        );
+
+        assertThat(paymentsResponse.getStatusCode().value()).isIn(401, 403);
+        assertThat(historyResponse.getStatusCode().value()).isIn(401, 403);
+    }
+
+    private ResponseEntity<String> postPayment(String fromAccount,
+                                               String toAccount,
+                                               BigDecimal amount,
+                                               String token,
+                                               String referenceNumber) {
+        String payload = """
+                {
+                  "fromAccount": "%s",
+                  "toAccount": "%s",
+                  "amount": %s,
+                  "paymentCode": "289",
+                  "referenceNumber": "%s",
+                  "description": "Generated payment"
+                }
+                """.formatted(fromAccount, toAccount, amount.toPlainString(), referenceNumber);
+
+        ResponseEntity<String> response = restTemplate.postForEntity(
+                url("/payments"),
+                new HttpEntity<>(payload, jsonHeaders(token)),
+                String.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        return response;
     }
 
     private HttpHeaders jsonHeaders(String bearerToken) {
@@ -300,13 +510,28 @@ class PaymentControllerIntegrationTest {
         return "http://localhost:" + port + path;
     }
 
-    private User createUser(String email) {
-        User user = new User();
+    private Client createClient(String email) {
+        Client user = new Client();
         user.setFirstName("Test");
         user.setLastName("User");
+        user.setDateOfBirth(LocalDate.of(1995, 1, 1)); // required
+        user.setGender("M");                            // optional, but fine to set
         user.setEmail(email);
+        user.setPhone("+381600000001");                 // required
+        user.setAddress("Test Address");
         user.setPassword("x");
+        user.setSaltPassword("salt");                   // required
         user.setActive(true);
+        return clientRepository.save(user);
+    }
+
+    private User createAuthUserForClient(Client client) {
+        User user = new User();
+        user.setFirstName(client.getFirstName());
+        user.setLastName(client.getLastName());
+        user.setEmail(client.getEmail());
+        user.setPassword(client.getPassword());
+        user.setActive(Boolean.TRUE.equals(client.getActive()));
         user.setRole("CLIENT");
         return userRepository.save(user);
     }
@@ -357,7 +582,7 @@ class PaymentControllerIntegrationTest {
         return entityManager.getReference(Currency.class, id);
     }
 
-    private Account createAccount(String accountNumber, User owner, Employee employee, Currency currency, BigDecimal balance) {
+    private Account createAccount(String accountNumber, Client owner, Employee employee, Currency currency, BigDecimal balance) {
         Account account = Account.builder()
                 .accountNumber(accountNumber)
                 .accountType(AccountType.CHECKING)
@@ -372,6 +597,43 @@ class PaymentControllerIntegrationTest {
                 .dailySpending(BigDecimal.ZERO)
                 .monthlySpending(BigDecimal.ZERO)
                 .build();
-        return accountRepository.save(account);
+        return paymentAccountRepository.save(account);
+    }
+
+    private BigDecimal getFxRate(String from, String to) {
+        String f = from.toUpperCase();
+        String t = to.toUpperCase();
+        if (f.equals(t)) {
+            return BigDecimal.ONE;
+        }
+
+        Map<String, BigDecimal> rsdToCurrency = new HashMap<>();
+        for (ExchangeRateDto rate : exchangeService.getAllRates()) {
+            if (rate.getCurrency() != null) {
+                rsdToCurrency.put(rate.getCurrency().toUpperCase(), BigDecimal.valueOf(rate.getRate()));
+            }
+        }
+
+        BigDecimal rsdToFrom = rsdToCurrency.get(f);
+        BigDecimal rsdToTo = rsdToCurrency.get(t);
+
+        if (rsdToFrom == null || rsdToTo == null || rsdToFrom.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Unsupported currency pair in test: " + from + "/" + to);
+        }
+
+        return rsdToTo.divide(rsdToFrom, 10, RoundingMode.HALF_UP);
+    }
+
+    private List<ExchangeRateDto> fixedRates() {
+        return List.of(
+                new ExchangeRateDto("RSD", 1.0),
+                new ExchangeRateDto("EUR", 0.008532423208191127),
+                new ExchangeRateDto("USD", 0.009216589861751152),
+                new ExchangeRateDto("CHF", 0.008143322475570033),
+                new ExchangeRateDto("GBP", 0.00727802037845706),
+                new ExchangeRateDto("JPY", 1.36986301369863),
+                new ExchangeRateDto("CAD", 0.012484394506866417),
+                new ExchangeRateDto("AUD", 0.013966480446927373)
+        );
     }
 }

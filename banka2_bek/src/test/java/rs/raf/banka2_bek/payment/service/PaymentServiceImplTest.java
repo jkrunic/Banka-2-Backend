@@ -16,14 +16,18 @@ import rs.raf.banka2_bek.account.model.Account;
 import rs.raf.banka2_bek.account.model.AccountStatus;
 import rs.raf.banka2_bek.auth.model.User;
 import rs.raf.banka2_bek.auth.repository.UserRepository;
+import rs.raf.banka2_bek.client.repository.ClientRepository;
 import rs.raf.banka2_bek.currency.model.Currency;
+import rs.raf.banka2_bek.exchange.ExchangeService;
+import rs.raf.banka2_bek.exchange.dto.ExchangeRateDto;
 import rs.raf.banka2_bek.payment.dto.CreatePaymentRequestDto;
 import rs.raf.banka2_bek.payment.dto.PaymentResponseDto;
 import rs.raf.banka2_bek.payment.model.Payment;
-import rs.raf.banka2_bek.payment.repository.AccountRepository;
+import rs.raf.banka2_bek.payment.repository.PaymentAccountRepository;
 import rs.raf.banka2_bek.payment.repository.PaymentRepository;
 import rs.raf.banka2_bek.payment.service.implementation.PaymentServiceImpl;
 import rs.raf.banka2_bek.transaction.service.TransactionService;
+import rs.raf.banka2_bek.client.model.Client;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -36,6 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -45,17 +50,19 @@ class PaymentServiceImplTest {
     @Mock
     private PaymentRepository paymentRepository;
     @Mock
-    private AccountRepository accountRepository;
+    private PaymentAccountRepository paymentAccountRepository;
     @Mock
-    private UserRepository userRepository;
+    private ClientRepository clientRepository;
     @Mock
     private TransactionService transactionService;
+    @Mock
+    private ExchangeService exchangeService;
 
     @InjectMocks
     private PaymentServiceImpl paymentService;
 
     private CreatePaymentRequestDto request;
-    private User client;
+    private Client client;
     private Currency eur;
     private Account fromAccount;
     private Account toAccount;
@@ -70,11 +77,11 @@ class PaymentServiceImplTest {
         request.setReferenceNumber("REF-1");
         request.setDescription("Test payment");
 
-        client = new User();
+        client = new Client();
         client.setId(10L);
         client.setEmail("client@test.com");
         client.setActive(true);
-        client.setRole("CLIENT");
+//        client.setRole("CLIENT");
 
         eur = Currency.builder().id(1L).code("EUR").name("Euro").symbol("E").country("EU").active(true).build();
 
@@ -82,7 +89,8 @@ class PaymentServiceImplTest {
         toAccount = baseAccount(2L, request.getToAccount(), null, eur, new BigDecimal("500.00"));
 
         authenticateAs(client.getEmail());
-        lenient().when(userRepository.findByEmail(client.getEmail())).thenReturn(Optional.of(client));
+        lenient().when(clientRepository.findByEmail(client.getEmail())).thenReturn(Optional.of(client));
+        lenient().when(exchangeService.getAllRates()).thenReturn(defaultRates());
     }
 
     @AfterEach
@@ -92,8 +100,8 @@ class PaymentServiceImplTest {
 
     @Test
     void createPayment_success_updatesBalances_savesPayment_andRecordsTransactions() {
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
 
         when(paymentRepository.saveAndFlush(any(Payment.class))).thenAnswer(inv -> {
             Payment p = inv.getArgument(0);
@@ -121,7 +129,12 @@ class PaymentServiceImplTest {
         assertThat(paymentCaptor.getValue().getOrderNumber()).startsWith("PAY-");
         assertThat(paymentCaptor.getValue().getFee()).isEqualByComparingTo("0");
 
-        verify(transactionService).recordPaymentSettlement(any(Payment.class), eq(toAccount), eq(client));
+        verify(transactionService).recordPaymentSettlement(
+                any(Payment.class),
+                eq(toAccount),
+                eq(client),
+                argThat(credited -> credited.compareTo(new BigDecimal("100.00")) == 0)
+        );
     }
 
     @Test
@@ -136,9 +149,9 @@ class PaymentServiceImplTest {
                 .build();
         toAccount.setCurrency(usd);
 
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount()))
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount()))
                 .thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount()))
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount()))
                 .thenReturn(Optional.of(toAccount));
 
         when(paymentRepository.saveAndFlush(any(Payment.class))).thenAnswer(inv -> {
@@ -165,14 +178,19 @@ class PaymentServiceImplTest {
         verify(paymentRepository).saveAndFlush(paymentCaptor.capture());
         assertThat(paymentCaptor.getValue().getFee()).isEqualByComparingTo("0.50000");
 
-        verify(transactionService).recordPaymentSettlement(any(Payment.class), eq(toAccount), eq(client));
+        verify(transactionService).recordPaymentSettlement(
+                any(Payment.class),
+                eq(toAccount),
+                eq(client),
+                argThat(credited -> credited.compareTo(new BigDecimal("108.01843318")) == 0)
+        );
     }
 
 
     @Test
     void createPayment_retriesOnUniqueViolation_thenSucceeds() {
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
 
         AtomicInteger attempts = new AtomicInteger(0);
         when(paymentRepository.saveAndFlush(any(Payment.class))).thenAnswer(inv -> {
@@ -192,8 +210,8 @@ class PaymentServiceImplTest {
 
     @Test
     void createPayment_throwsWhenAllUniqueRetriesFail() {
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
         when(paymentRepository.saveAndFlush(any(Payment.class))).thenThrow(uniqueViolation());
 
         assertThatThrownBy(() -> paymentService.createPayment(request))
@@ -203,8 +221,8 @@ class PaymentServiceImplTest {
 
     @Test
     void createPayment_propagatesDataIntegrityViolationWhenCauseMessageIsNull() {
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
 
         DataIntegrityViolationException ex = new DataIntegrityViolationException(
                 "constraint",
@@ -218,8 +236,8 @@ class PaymentServiceImplTest {
 
     @Test
     void createPayment_propagatesNonUniqueDataIntegrityViolation() {
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
 
         DataIntegrityViolationException ex = new DataIntegrityViolationException(
                 "constraint",
@@ -233,7 +251,7 @@ class PaymentServiceImplTest {
 
     @Test
     void createPayment_throwsWhenFromAccountMissing() {
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.empty());
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> paymentService.createPayment(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -242,8 +260,8 @@ class PaymentServiceImplTest {
 
     @Test
     void createPayment_throwsWhenToAccountMissing() {
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.empty());
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> paymentService.createPayment(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -253,8 +271,8 @@ class PaymentServiceImplTest {
     @Test
     void createPayment_throwsWhenFromAccountInactive() {
         fromAccount.setStatus(AccountStatus.INACTIVE);
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
 
         assertThatThrownBy(() -> paymentService.createPayment(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -264,8 +282,8 @@ class PaymentServiceImplTest {
     @Test
     void createPayment_throwsWhenToAccountInactive() {
         toAccount.setStatus(AccountStatus.INACTIVE);
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
 
         assertThatThrownBy(() -> paymentService.createPayment(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -275,8 +293,8 @@ class PaymentServiceImplTest {
     @Test
     void createPayment_throwsWhenSameAccount() {
         toAccount.setId(fromAccount.getId());
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
 
         assertThatThrownBy(() -> paymentService.createPayment(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -285,12 +303,12 @@ class PaymentServiceImplTest {
 
     @Test
     void createPayment_throwsWhenFromAccountNotOwnedByAuthenticatedUser() {
-        User other = new User();
+        Client other = new Client();
         other.setId(777L);
         fromAccount.setClient(other);
 
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
 
         assertThatThrownBy(() -> paymentService.createPayment(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -301,8 +319,8 @@ class PaymentServiceImplTest {
     void createPayment_throwsWhenDailyLimitExceeded() {
         fromAccount.setDailyLimit(new BigDecimal("50.00"));
 
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
 
         assertThatThrownBy(() -> paymentService.createPayment(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -313,8 +331,8 @@ class PaymentServiceImplTest {
     void createPayment_throwsWhenDailyLimitMissing() {
         fromAccount.setDailyLimit(null);
 
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
 
         assertThatThrownBy(() -> paymentService.createPayment(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -325,8 +343,8 @@ class PaymentServiceImplTest {
     void createPayment_throwsWhenMonthlyLimitExceeded() {
         fromAccount.setMonthlyLimit(new BigDecimal("70.00"));
 
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
 
         assertThatThrownBy(() -> paymentService.createPayment(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -337,8 +355,8 @@ class PaymentServiceImplTest {
     void createPayment_throwsWhenMonthlyLimitMissing() {
         fromAccount.setMonthlyLimit(null);
 
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
 
         assertThatThrownBy(() -> paymentService.createPayment(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -349,8 +367,8 @@ class PaymentServiceImplTest {
     void createPayment_throwsWhenInsufficientFunds() {
         fromAccount.setAvailableBalance(new BigDecimal("20.00"));
 
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
 
         assertThatThrownBy(() -> paymentService.createPayment(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -361,8 +379,8 @@ class PaymentServiceImplTest {
     void createPayment_throwsWhenAvailableBalanceMissing() {
         fromAccount.setAvailableBalance(null);
 
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
 
         assertThatThrownBy(() -> paymentService.createPayment(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -373,8 +391,8 @@ class PaymentServiceImplTest {
     void createPayment_throwsWhenAuthenticationMissing() {
         SecurityContextHolder.clearContext();
 
-        when(accountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())).thenReturn(Optional.of(fromAccount));
+        when(paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())).thenReturn(Optional.of(toAccount));
 
         assertThatThrownBy(() -> paymentService.createPayment(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -444,7 +462,7 @@ class PaymentServiceImplTest {
         );
     }
 
-    private Account baseAccount(Long id, String accountNumber, User owner, Currency currency, BigDecimal balance) {
+    private Account baseAccount(Long id, String accountNumber, Client owner, Currency currency, BigDecimal balance) {
         return Account.builder()
                 .id(id)
                 .accountNumber(accountNumber)
@@ -464,6 +482,19 @@ class PaymentServiceImplTest {
         return new DataIntegrityViolationException(
                 "duplicate key",
                 new RuntimeException("Duplicate entry for key 'uk_payments_order_number'")
+        );
+    }
+
+    private List<ExchangeRateDto> defaultRates() {
+        return List.of(
+                new ExchangeRateDto("RSD", 1.0),
+                new ExchangeRateDto("EUR", 0.008532423208191127),
+                new ExchangeRateDto("USD", 0.009216589861751152),
+                new ExchangeRateDto("CHF", 0.008143322475570033),
+                new ExchangeRateDto("GBP", 0.00727802037845706),
+                new ExchangeRateDto("JPY", 1.36986301369863),
+                new ExchangeRateDto("CAD", 0.012484394506866417),
+                new ExchangeRateDto("AUD", 0.013966480446927373)
         );
     }
 

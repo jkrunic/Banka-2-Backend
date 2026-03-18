@@ -8,12 +8,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import rs.raf.banka2_bek.account.model.Account;
-import rs.raf.banka2_bek.auth.model.User;
-import rs.raf.banka2_bek.auth.repository.UserRepository;
+import rs.raf.banka2_bek.client.model.Client;
+import rs.raf.banka2_bek.client.repository.ClientRepository;
 import rs.raf.banka2_bek.payment.model.Payment;
-import rs.raf.banka2_bek.payment.model.PaymentStatus;
 import rs.raf.banka2_bek.transaction.dto.TransactionListItemDto;
 import rs.raf.banka2_bek.transaction.dto.TransactionResponseDto;
+import rs.raf.banka2_bek.transaction.dto.TransactionDirection;
 import rs.raf.banka2_bek.transaction.dto.TransactionType;
 import rs.raf.banka2_bek.transaction.model.Transaction;
 import rs.raf.banka2_bek.transaction.repository.TransactionRepository;
@@ -27,11 +27,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TransactionServiceImpl implements TransactionService {
     private final TransactionRepository transactionRepository;
-    private final UserRepository userRepository;
+    private final ClientRepository clientRepository;
 
 
     @Override
-    public List<TransactionResponseDto> recordPaymentSettlement(Payment payment, Account toAccount, User initiatedBy) {
+    public List<TransactionResponseDto> recordPaymentSettlement(
+            Payment payment,
+            Account toAccount,
+            Client initiatedBy,
+            BigDecimal creditedAmount
+    ) {
         Account fromAccount = payment.getFromAccount();
         BigDecimal amount = payment.getAmount();
 
@@ -54,7 +59,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .payment(payment)
                 .description(payment.getPurpose())
                 .debit(BigDecimal.ZERO)
-                .credit(amount)
+                .credit(creditedAmount)
                 .balanceAfter(orZero(toAccount.getBalance()))
                 .availableAfter(orZero(toAccount.getAvailableBalance()))
                 .build();
@@ -66,8 +71,8 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public Page<TransactionListItemDto> getTransactions(Pageable pageable) {
-        User currentUser = getAuthenticatedUser();
-        return transactionRepository.findByAccountUserId(currentUser.getId(), pageable)
+        Client currentUser = getAuthenticatedUser();
+        return transactionRepository.findByAccountClientId(currentUser.getId(), pageable)
                 .map(this::toListItem);
     }
 
@@ -80,14 +85,14 @@ public class TransactionServiceImpl implements TransactionService {
             BigDecimal maxAmount,
             TransactionType type
     ) {
-        User currentUser = getAuthenticatedUser();
-        return transactionRepository.findPaymentTransactionsByAccountUserIdAndFilters(
+        Client currentUser = getAuthenticatedUser();
+        return transactionRepository.findTransactionsByAccountUserIdAndFilters(
                         currentUser.getId(),
                         fromDate,
                         toDate,
                         minAmount,
                         maxAmount,
-                        type,
+                        type == null ? null : type.name(),
                         pageable
                 )
                 .map(this::toListItem);
@@ -124,13 +129,21 @@ public class TransactionServiceImpl implements TransactionService {
                 .id(transaction.getId())
                 .accountNumber(transaction.getAccount() != null ? transaction.getAccount().getAccountNumber() : null)
                 .type(transaction.getPayment() != null ? TransactionType.PAYMENT : TransactionType.TRANSFER)
+                .direction(resolveDirection(transaction))
                 .debit(transaction.getDebit())
                 .credit(transaction.getCredit())
                 .createdAt(transaction.getCreatedAt())
                 .build();
     }
 
-    private User getAuthenticatedUser() {
+    private TransactionDirection resolveDirection(Transaction transaction) {
+        BigDecimal debit = orZero(transaction.getDebit());
+        return debit.compareTo(BigDecimal.ZERO) > 0
+                ? TransactionDirection.OUTGOING
+                : TransactionDirection.INCOMING;
+    }
+
+    private Client getAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new IllegalArgumentException("Authenticated user is required.");
@@ -138,7 +151,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         Object principal = authentication.getPrincipal();
         if (principal instanceof UserDetails userDetails) {
-            return userRepository.findByEmail(userDetails.getUsername())
+            return clientRepository.findByEmail(userDetails.getUsername())
                     .orElseThrow(() -> new IllegalArgumentException("Authenticated user does not exist."));
         }
 

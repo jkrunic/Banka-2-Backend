@@ -12,6 +12,7 @@ public class TransactionListItemDto {
     Long id;
     String accountNumber;
     TransactionType type;
+    TransactionDirection direction;
     BigDecimal debit;
     BigDecimal credit;
     LocalDateTime createdAt;

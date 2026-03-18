@@ -19,7 +19,7 @@ public class PaymentResponseDto {
     String paymentCode;
     String referenceNumber;
     String description;
+    PaymentDirection direction;
     PaymentStatus status;
     LocalDateTime createdAt;
 }
-

@@ -5,6 +5,7 @@ import lombok.*;
 
 import rs.raf.banka2_bek.account.model.Account;
 import rs.raf.banka2_bek.auth.model.User;
+import rs.raf.banka2_bek.client.model.Client;
 import rs.raf.banka2_bek.currency.model.Currency;
 
 import java.math.BigDecimal;
@@ -63,9 +64,9 @@ public class Payment {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by_id", nullable = false)
-//    private Client createdBy;
-    private User createdBy;              // Korisnik koji je kreirao nalog (može biti klijent ili zaposleni)
+    private Client createdBy;
 
+    //trenutno UTC zbog docker env-a ili tako nesto
     @Column(nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

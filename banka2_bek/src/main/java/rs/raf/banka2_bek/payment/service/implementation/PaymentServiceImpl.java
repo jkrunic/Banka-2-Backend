@@ -9,27 +9,30 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import rs.raf.banka2_bek.client.model.Client;
+import rs.raf.banka2_bek.client.repository.ClientRepository;
+import rs.raf.banka2_bek.exchange.ExchangeService;
+import rs.raf.banka2_bek.exchange.dto.ExchangeRateDto;
 import rs.raf.banka2_bek.account.model.Account;
 import rs.raf.banka2_bek.account.model.AccountStatus;
-import rs.raf.banka2_bek.auth.model.User;
-import rs.raf.banka2_bek.auth.repository.UserRepository;
 import rs.raf.banka2_bek.payment.dto.CreatePaymentRequestDto;
+import rs.raf.banka2_bek.payment.dto.PaymentDirection;
 import rs.raf.banka2_bek.payment.dto.PaymentListItemDto;
 import rs.raf.banka2_bek.payment.dto.PaymentResponseDto;
 import rs.raf.banka2_bek.payment.model.Payment;
 import rs.raf.banka2_bek.payment.model.PaymentStatus;
-import rs.raf.banka2_bek.payment.repository.AccountRepository;
+import rs.raf.banka2_bek.payment.repository.PaymentAccountRepository;
 import rs.raf.banka2_bek.payment.repository.PaymentRepository;
 import rs.raf.banka2_bek.payment.service.PaymentService;
 import rs.raf.banka2_bek.transaction.dto.TransactionListItemDto;
 import rs.raf.banka2_bek.transaction.dto.TransactionType;
 import rs.raf.banka2_bek.transaction.service.TransactionService;
-import rs.raf.banka2_bek.transfer.model.TransferType;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -38,37 +41,20 @@ import java.util.UUID;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
-    //TODO: zameniti import
-    private final AccountRepository accountRepository;
-    private final UserRepository userRepository;
+    private final PaymentAccountRepository paymentAccountRepository;
+    private final ClientRepository clientRepository;
     private final TransactionService transactionService;
+    private final ExchangeService exchangeService;
     private static final int ORDER_NUMBER_MAX_RETRIES = 5;
-
-    //TODO: skloniti ovo kada se uvede pravi FX servis
-    private static final Set<String> SUPPORTED = Set.of(
-            "EUR", "CHF", "USD", "GBP", "JPY", "CAD", "AUD", "RSD"
-    );
-
-    // 1 unit of key currency = value in RSD
-    private static final Map<String, BigDecimal> TO_RSD = Map.of(
-            "RSD", new BigDecimal("1.0000"),
-            "EUR", new BigDecimal("117.2000"),
-            "CHF", new BigDecimal("122.8000"),
-            "USD", new BigDecimal("108.5000"),
-            "GBP", new BigDecimal("137.4000"),
-            "JPY", new BigDecimal("0.7300"),
-            "CAD", new BigDecimal("80.1000"),
-            "AUD", new BigDecimal("71.6000")
-    );
 
     //Trenutno podrzava samo placanja u okviru iste banke
     @Override
     @Transactional
     public PaymentResponseDto createPayment(CreatePaymentRequestDto request) {
-        Account fromAccount = accountRepository.findForUpdateByAccountNumber(request.getFromAccount())
+        Account fromAccount = paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())
                 .orElseThrow(() -> new IllegalArgumentException("Source account does not exist."));
 
-        Account toAccount = accountRepository.findForUpdateByAccountNumber(request.getToAccount())
+        Account toAccount = paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())
                 .orElseThrow(() -> new IllegalArgumentException("Destination account does not exist."));
 
         if (fromAccount.getStatus() != AccountStatus.ACTIVE) {
@@ -83,7 +69,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new IllegalArgumentException("Source and destination accounts must be different.");
         }
 
-        User client = getAuthenticatedClient();
+        Client client = getAuthenticatedClient();
 
         if (fromAccount.getClient() == null || !fromAccount.getClient().getId().equals(client.getId())) {
             throw new IllegalArgumentException("Source account does not belong to the authenticated client.");
@@ -113,13 +99,15 @@ public class PaymentServiceImpl implements PaymentService {
             exRate = getFxRate(fromAccount.getCurrency().getCode(), toAccount.getCurrency().getCode());
         }
 
+        BigDecimal creditedAmount = amount.multiply(exRate);
+
         fromAccount.setBalance(fromAccount.getBalance().subtract(amount.add(transactionFee)));
         fromAccount.setAvailableBalance(fromAccount.getAvailableBalance().subtract(amount.add(transactionFee)));
         fromAccount.setDailySpending(fromAccount.getDailySpending().add(amount));
         fromAccount.setMonthlySpending(fromAccount.getMonthlySpending().add(amount));
 
-        toAccount.setBalance(toAccount.getBalance().add(amount.multiply(exRate)));
-        toAccount.setAvailableBalance(toAccount.getAvailableBalance().add(amount.multiply(exRate)));
+        toAccount.setBalance(toAccount.getBalance().add(creditedAmount));
+        toAccount.setAvailableBalance(toAccount.getAvailableBalance().add(creditedAmount));
 
         Payment base = Payment.builder()
                 .fromAccount(fromAccount)
@@ -155,8 +143,8 @@ public class PaymentServiceImpl implements PaymentService {
             throw new IllegalStateException("Failed to generate unique order number.");
         }
 
-        transactionService.recordPaymentSettlement(savedPayment, toAccount, client);
-        return toResponse(savedPayment);
+        transactionService.recordPaymentSettlement(savedPayment, toAccount, client, creditedAmount);
+        return toResponse(savedPayment, client.getId());
     }
 
     @Override
@@ -168,7 +156,7 @@ public class PaymentServiceImpl implements PaymentService {
             BigDecimal maxAmount,
             PaymentStatus status
     ) {
-        User client = getAuthenticatedClient();
+        Client client = getAuthenticatedClient();
         return paymentRepository.findByUserAccountsWithFilters(
                         client.getId(),
                         fromDate,
@@ -178,14 +166,15 @@ public class PaymentServiceImpl implements PaymentService {
                         status,
                         pageable
                 )
-                .map(this::toListItem);
+                .map(payment -> toListItem(payment, client.getId()));
     }
 
     @Override
     public PaymentResponseDto getPaymentById(Long paymentId) {
+        Client client = getAuthenticatedClient();
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new IllegalArgumentException("Payment with ID " + paymentId + " not found."));
-        return toResponse(payment);
+        return toResponse(payment, client.getId());
     }
 
     @Override
@@ -204,21 +193,31 @@ public class PaymentServiceImpl implements PaymentService {
     private BigDecimal getFxRate(String from, String to) {
         String f = from.toUpperCase();
         String t = to.toUpperCase();
-
-        if (!SUPPORTED.contains(f) || !SUPPORTED.contains(t)) {
-            throw new IllegalArgumentException("Unsupported currency pair: " + from + "/" + to);
-        }
         if (f.equals(t)) return BigDecimal.ONE;
 
-        BigDecimal fromToRsd = TO_RSD.get(f);
-        BigDecimal toToRsd = TO_RSD.get(t);
+        // Exchange service provides rates in the form: 1 RSD = rate * CURRENCY.
+        List<ExchangeRateDto> rates = exchangeService.getAllRates();
+        Map<String, BigDecimal> rsdToCurrency = new HashMap<>();
 
-        // (from -> RSD) / (to -> RSD) = from -> to
-        return fromToRsd.divide(toToRsd, 10, RoundingMode.HALF_UP);
+        for (ExchangeRateDto rate : rates) {
+            if (rate.getCurrency() != null) {
+                rsdToCurrency.put(rate.getCurrency().toUpperCase(), BigDecimal.valueOf(rate.getRate()));
+            }
+        }
+
+        BigDecimal rsdToFrom = rsdToCurrency.get(f);
+        BigDecimal rsdToTo = rsdToCurrency.get(t);
+
+        if (rsdToFrom == null || rsdToTo == null || rsdToFrom.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Unsupported currency pair: " + from + "/" + to);
+        }
+
+        // from->to = (RSD->to) / (RSD->from)
+        return rsdToTo.divide(rsdToFrom, 10, RoundingMode.HALF_UP);
     }
 
 
-    private PaymentResponseDto toResponse(Payment payment) {
+    private PaymentResponseDto toResponse(Payment payment, Long authenticatedClientId) {
         return PaymentResponseDto.builder()
                 .id(payment.getId())
                 .orderNumber(payment.getOrderNumber())
@@ -229,21 +228,35 @@ public class PaymentServiceImpl implements PaymentService {
                 .paymentCode(payment.getPaymentCode())
                 .referenceNumber(payment.getReferenceNumber())
                 .description(payment.getPurpose())
+                .direction(resolveDirection(payment, authenticatedClientId))
                 .status(payment.getStatus())
                 .createdAt(payment.getCreatedAt())
                 .build();
     }
 
-    private PaymentListItemDto toListItem(Payment payment) {
+    private PaymentListItemDto toListItem(Payment payment, Long authenticatedClientId) {
+        PaymentDirection direction = resolveDirection(payment, authenticatedClientId);
+
         return PaymentListItemDto.builder()
                 .id(payment.getId())
                 .orderNumber(payment.getOrderNumber())
                 .fromAccount(payment.getFromAccount() != null ? payment.getFromAccount().getAccountNumber() : null)
                 .toAccount(payment.getToAccountNumber())
                 .amount(payment.getAmount())
+                .direction(direction)
                 .status(payment.getStatus())
                 .createdAt(payment.getCreatedAt())
                 .build();
+    }
+
+    private PaymentDirection resolveDirection(Payment payment, Long authenticatedClientId) {
+        if (payment.getFromAccount() == null || payment.getFromAccount().getClient() == null) {
+            return PaymentDirection.INCOMING;
+        }
+
+        return payment.getFromAccount().getClient().getId().equals(authenticatedClientId)
+                ? PaymentDirection.OUTGOING
+                : PaymentDirection.INCOMING;
     }
 
     /*private PaymentListItemDto toPaymentHistoryItem(TransactionListItemDto transaction) {
@@ -273,9 +286,9 @@ public class PaymentServiceImpl implements PaymentService {
         throw new IllegalArgumentException("Authenticated user is required.");
     }
 
-    private User getAuthenticatedClient() {
+    private Client getAuthenticatedClient() {
         String username = getAuthenticatedUsername();
-        return userRepository.findByEmail(username)
+        return clientRepository.findByEmail(username)
                 .orElseThrow(() -> new IllegalArgumentException("Authenticated client does not exist."));
     }
 
