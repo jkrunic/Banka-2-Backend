@@ -64,32 +64,52 @@ public class AccountServiceImplementation implements AccountService {
     @Override
     @Transactional
     public AccountResponseDto createAccount(CreateAccountDto request) {
-        // Find currency
-        Currency currency = currencyRepository.findByCode(request.getCurrencyCode())
-                .orElseThrow(() -> new RuntimeException("Valuta '" + request.getCurrencyCode() + "' nije pronadjena"));
+        // Find currency (FE salje "currency" ili "currencyCode")
+        String currCode = request.getResolvedCurrencyCode();
+        if (currCode == null || currCode.isBlank()) {
+            throw new RuntimeException("Valuta je obavezna");
+        }
+        Currency currency = currencyRepository.findByCode(currCode)
+                .orElseThrow(() -> new RuntimeException("Valuta '" + currCode + "' nije pronadjena"));
 
-        // Find employee from security context
+        // Find employee from security context (admin moze biti u users ali ne u employees)
         String email = getAuthenticatedEmail();
-        Employee employee = employeeRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Zaposleni nije pronadjen"));
+        Employee employee = employeeRepository.findByEmail(email).orElse(null);
+        if (employee == null) {
+            employee = employeeRepository.findAll().stream()
+                    .filter(e -> Boolean.TRUE.equals(e.getActive()))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("Nema aktivnih zaposlenih u sistemu"));
+        }
 
-        // Resolve owner
+        // Resolve owner — FE salje ownerEmail, BE podrzava i clientId
         Client client = null;
         Company company = null;
-        boolean isBusiness = request.getCompany() != null;
 
         if (request.getClientId() != null) {
             client = clientRepository.findById(request.getClientId())
                     .orElseThrow(() -> new RuntimeException("Klijent sa ID " + request.getClientId() + " nije pronadjen"));
+        } else if (request.getOwnerEmail() != null && !request.getOwnerEmail().isBlank()) {
+            client = clientRepository.findByEmail(request.getOwnerEmail())
+                    .orElseThrow(() -> new RuntimeException("Klijent sa emailom '" + request.getOwnerEmail() + "' nije pronadjen"));
         }
 
+        // Poslovni racun — FE salje flat polja ILI nested company objekat
+        boolean isBusiness = request.getCompany() != null || request.getCompanyName() != null;
+
         if (isBusiness) {
+            String compName = request.getCompany() != null ? request.getCompany().getName() : request.getCompanyName();
+            String regNum = request.getCompany() != null ? request.getCompany().getRegistrationNumber() : request.getRegistrationNumber();
+            String taxNum = request.getCompany() != null ? request.getCompany().getTaxNumber() : request.getTaxId();
+            String actCode = request.getCompany() != null ? request.getCompany().getActivityCode() : request.getActivityCode();
+            String addr = request.getCompany() != null ? request.getCompany().getAddress() : request.getFirmAddress();
+
             company = Company.builder()
-                    .name(request.getCompany().getName())
-                    .registrationNumber(request.getCompany().getRegistrationNumber())
-                    .taxNumber(request.getCompany().getTaxNumber())
-                    .activityCode(request.getCompany().getActivityCode())
-                    .address(request.getCompany().getAddress())
+                    .name(compName)
+                    .registrationNumber(regNum)
+                    .taxNumber(taxNum)
+                    .activityCode(actCode)
+                    .address(addr != null ? addr : "N/A")
                     .authorizedPersons(new ArrayList<>())
                     .build();
 
@@ -105,7 +125,7 @@ public class AccountServiceImplementation implements AccountService {
         }
 
         if (!isBusiness && client == null) {
-            throw new RuntimeException("Licni racun mora imati klijenta");
+            throw new RuntimeException("Licni racun mora imati klijenta (ownerEmail ili clientId)");
         }
 
         // Generate account number
@@ -128,8 +148,8 @@ public class AccountServiceImplementation implements AccountService {
                 .client(isBusiness ? null : client)
                 .company(company)
                 .employee(employee)
-                .balance(request.getInitialBalance())
-                .availableBalance(request.getInitialBalance())
+                .balance(request.getResolvedInitialBalance())
+                .availableBalance(request.getResolvedInitialBalance())
                 .dailyLimit(dailyLimit)
                 .monthlyLimit(monthlyLimit)
                 .maintenanceFee(request.getAccountType() == AccountType.FOREIGN ? BigDecimal.ZERO : BigDecimal.valueOf(255))

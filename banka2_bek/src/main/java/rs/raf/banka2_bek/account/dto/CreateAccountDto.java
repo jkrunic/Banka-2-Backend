@@ -16,18 +16,42 @@ public class CreateAccountDto {
 
     private AccountSubtype accountSubtype;
 
-    @NotNull(message = "Valuta je obavezna")
+    // FE salje "currency" (code string), BE takodje prihvata "currencyCode"
     private String currencyCode;
+    private String currency;
 
     @PositiveOrZero(message = "Pocetno stanje mora biti 0 ili vece")
-    private BigDecimal initialBalance = BigDecimal.ZERO;
+    private BigDecimal initialBalance;
+    private Double initialDeposit;
 
     private Long clientId;
+    private String ownerEmail;
 
     private CreateAccountCompanyDto company;
+
+    // FE salje poslovne podatke kao flat polja
+    private String companyName;
+    private String registrationNumber;
+    private String taxId;
+    private String activityCode;
+    private String firmAddress;
 
     private Boolean createCard = false;
 
     private BigDecimal dailyLimit;
     private BigDecimal monthlyLimit;
+
+    // Helper da se dobije valuta bez obzira koje polje je poslato
+    public String getResolvedCurrencyCode() {
+        if (currencyCode != null && !currencyCode.isBlank()) return currencyCode;
+        if (currency != null && !currency.isBlank()) return currency;
+        return null;
+    }
+
+    // Helper za pocetno stanje
+    public BigDecimal getResolvedInitialBalance() {
+        if (initialBalance != null) return initialBalance;
+        if (initialDeposit != null) return BigDecimal.valueOf(initialDeposit);
+        return BigDecimal.ZERO;
+    }
 }
