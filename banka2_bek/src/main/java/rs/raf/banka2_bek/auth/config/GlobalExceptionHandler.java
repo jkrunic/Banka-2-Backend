@@ -1,5 +1,6 @@
 package rs.raf.banka2_bek.auth.config;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -24,10 +25,17 @@ public class GlobalExceptionHandler {
                 .body(new MessageResponseDto(message));
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<MessageResponseDto> handleNotFound(IllegalArgumentException ex) {
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<MessageResponseDto> handleEntityNotFound(EntityNotFoundException ex) {
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
+                .body(new MessageResponseDto(ex.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<MessageResponseDto> handleBadRequest(IllegalArgumentException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
                 .body(new MessageResponseDto(ex.getMessage()));
     }
 

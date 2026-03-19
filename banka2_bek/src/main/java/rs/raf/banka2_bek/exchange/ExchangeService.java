@@ -22,11 +22,27 @@ public class ExchangeService {
     @Value("${exchange.api.url}")
     private String apiUrl;
 
+    // Cache za kurseve — 5 minuta TTL
+    private List<ExchangeRateDto> cachedRates;
+    private long cacheTimestamp = 0;
+    private static final long CACHE_TTL_MS = 5 * 60 * 1000;
+
     public ExchangeService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 
     public List<ExchangeRateDto> getAllRates() {
+        if (cachedRates != null && (System.currentTimeMillis() - cacheTimestamp) < CACHE_TTL_MS) {
+            return cachedRates;
+        }
+        return fetchAndCacheRates();
+    }
+
+    private synchronized List<ExchangeRateDto> fetchAndCacheRates() {
+        // Double-check after acquiring lock
+        if (cachedRates != null && (System.currentTimeMillis() - cacheTimestamp) < CACHE_TTL_MS) {
+            return cachedRates;
+        }
 
         String url = apiUrl + "?access_key=" + apiKey +
                 "&symbols=RSD,EUR,CHF,USD,GBP,JPY,CAD,AUD";
@@ -35,6 +51,7 @@ public class ExchangeService {
         Map<String, Object> body = response.getBody();
 
         if (body == null || body.get("rates") == null) {
+            if (cachedRates != null) return cachedRates;
             return new ArrayList<>();
         }
 
@@ -71,6 +88,8 @@ public class ExchangeService {
             }
         }
 
+        cachedRates = result;
+        cacheTimestamp = System.currentTimeMillis();
         return result;
     }
 
