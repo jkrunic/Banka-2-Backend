@@ -21,14 +21,13 @@ import rs.raf.banka2_bek.employee.repository.EmployeeRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class ActuaryControllerIntegrationTest {
+class ActuaryServiceImplIntegrationTest {
 
     @Autowired
     private ActuaryService actuaryService;
@@ -113,7 +112,7 @@ class ActuaryControllerIntegrationTest {
 
     private void authenticateAsAdmin() {
         SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken("admin@banka.rs", null, List.of())
+                new UsernamePasswordAuthenticationToken("admin@banka.rs", null, java.util.List.of())
         );
     }
 
@@ -178,7 +177,6 @@ class ActuaryControllerIntegrationTest {
 
         ActuaryInfo refreshedMarko = actuaryInfoRepository.findByEmployeeId(agentMarko.getId()).orElseThrow();
         ActuaryInfo refreshedJelena = actuaryInfoRepository.findByEmployeeId(agentJelena.getId()).orElseThrow();
-
         assertEquals(0, refreshedMarko.getUsedLimit().compareTo(BigDecimal.ZERO));
         assertEquals(new BigDecimal("999.99"), refreshedJelena.getUsedLimit());
     }
