@@ -79,7 +79,7 @@ public class LoanController {
             @RequestParam(required = false) LoanType loanType,
             @RequestParam(required = false) LoanStatus status,
             @RequestParam(required = false) String accountNumber,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "amount", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(loanService.getAllLoans(loanType, status, accountNumber, pageable));
     }
 

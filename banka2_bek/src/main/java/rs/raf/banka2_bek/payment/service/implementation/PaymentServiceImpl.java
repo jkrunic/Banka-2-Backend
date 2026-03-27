@@ -104,11 +104,13 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         if (fromAccount.getDailyLimit() != null
+                && fromAccount.getDailyLimit().compareTo(BigDecimal.ZERO) > 0
                 && fromAccount.getDailySpending().add(amount).compareTo(fromAccount.getDailyLimit()) > 0) {
             throw new IllegalArgumentException("Prekoracen dnevni limit za ovaj racun");
         }
 
         if (fromAccount.getMonthlyLimit() != null
+                && fromAccount.getMonthlyLimit().compareTo(BigDecimal.ZERO) > 0
                 && fromAccount.getMonthlySpending().add(amount).compareTo(fromAccount.getMonthlyLimit()) > 0) {
             throw new IllegalArgumentException("Prekoracen mesecni limit za ovaj racun");
         }
@@ -164,6 +166,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .amount(amount)
                 .fee(transactionFee)
                 .currency(fromAccount.getCurrency())
+                .recipientName(request.getRecipientName())
                 .paymentCode(paymentCode)
                 .referenceNumber(request.getReferenceNumber())
                 .purpose(request.getDescription())
@@ -276,6 +279,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .paymentCode(payment.getPaymentCode())
                 .referenceNumber(payment.getReferenceNumber())
                 .description(payment.getPurpose())
+                .recipientName(payment.getRecipientName())
                 .direction(resolveDirection(payment, authenticatedClientId))
                 .status(payment.getStatus())
                 .createdAt(payment.getCreatedAt())
@@ -291,8 +295,9 @@ public class PaymentServiceImpl implements PaymentService {
                 .fromAccount(payment.getFromAccount() != null ? payment.getFromAccount().getAccountNumber() : null)
                 .toAccount(payment.getToAccountNumber())
                 .amount(payment.getAmount())
+                .fee(payment.getFee())
                 .currency(payment.getCurrency() != null ? payment.getCurrency().getCode() : null)
-                .recipientName(payment.getPurpose())
+                .recipientName(payment.getRecipientName())
                 .description(payment.getPurpose())
                 .direction(direction)
                 .status(payment.getStatus())

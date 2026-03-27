@@ -14,6 +14,7 @@ public class CardResponseDto {
     private String cardNumber;
     private String cardName;
     private String cvv;
+    private Long accountId;
     private String accountNumber;
     private String ownerName;
     private BigDecimal cardLimit;

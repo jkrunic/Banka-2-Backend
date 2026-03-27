@@ -37,6 +37,11 @@ public class RegisterRequestDto {
     @Size(max = 255)
     private String address;
 
+    private Long dateOfBirth;
+
+    @Size(max = 10)
+    private String gender;
+
     public RegisterRequestDto() {
     }
 
@@ -94,5 +99,21 @@ public class RegisterRequestDto {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public Long getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(Long dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
     }
 }

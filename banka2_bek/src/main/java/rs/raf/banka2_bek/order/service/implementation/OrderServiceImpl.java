@@ -121,6 +121,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public OrderDto approveOrder(Long orderId) {
         // TODO: Implementirati odobravanje ordera
         // 1. Naci order po ID-ju, proveriti da je PENDING
@@ -156,10 +157,25 @@ public class OrderServiceImpl implements OrderService {
         order.setLastModification(LocalDateTime.now());
 
         Order saved = orderRepository.save(order);
+
+        // Update agent usedLimit when supervisor approves
+        if ("EMPLOYEE".equals(order.getUserRole())) {
+            Optional<ActuaryInfo> actuaryOpt = orderStatusService.getAgentInfo(order.getUserId());
+            actuaryOpt.ifPresent(actuary -> {
+                if (actuary.getActuaryType() == ActuaryType.AGENT) {
+                    BigDecimal current = actuary.getUsedLimit() != null ? actuary.getUsedLimit() : BigDecimal.ZERO;
+                    BigDecimal orderPrice = order.getApproximatePrice() != null ? order.getApproximatePrice() : BigDecimal.ZERO;
+                    actuary.setUsedLimit(current.add(orderPrice));
+                    actuaryInfoRepository.save(actuary);
+                }
+            });
+        }
+
         return toDtoWithUserName(saved);
     }
 
     @Override
+    @Transactional
     public OrderDto declineOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("Order not found " + orderId));

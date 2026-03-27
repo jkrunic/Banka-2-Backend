@@ -48,6 +48,7 @@ public final class OrderMapper {
         dto.setAllOrNone(order.isAllOrNone());
         dto.setMargin(order.isMargin());
         dto.setCreatedAt(order.getCreatedAt());
+        dto.setAccountId(order.getAccountId());
         dto.setApproximatePrice(calculateApproximatePrice(order));
 
         return dto;

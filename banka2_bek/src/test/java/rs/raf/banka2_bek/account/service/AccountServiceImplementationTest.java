@@ -364,7 +364,7 @@ class AccountServiceImplementationTest {
             mockAuthenticatedUser("stefan.jovanovic@gmail.com");
             when(clientRepository.findByEmail("stefan.jovanovic@gmail.com")).thenReturn(Optional.of(testClientChangingNameOfAcc));
             when(accountRepository.findById(1L)).thenReturn(Optional.of(testMainAccount));
-            when(accountRepository.findByClientIdAndStatusOrderByAvailableBalanceDesc(1L, AccountStatus.ACTIVE))
+            when(accountRepository.findAccessibleAccounts(1L, AccountStatus.ACTIVE))
                     .thenReturn(List.of(testMainAccount, testCheckingAccount));
             when(accountRepository.save(any(Account.class))).thenReturn(testMainAccount);
 
@@ -483,7 +483,7 @@ class AccountServiceImplementationTest {
             mockAuthenticatedUser("stefan.jovanovic@gmail.com");
             when(clientRepository.findByEmail("stefan.jovanovic@gmail.com")).thenReturn(Optional.of(testClient));
             when(accountRepository.findById(1L)).thenReturn(Optional.of(testMainAccount));
-            when(accountRepository.findByClientIdAndStatusOrderByAvailableBalanceDesc(1L, AccountStatus.ACTIVE))
+            when(accountRepository.findAccessibleAccounts(1L, AccountStatus.ACTIVE))
                     .thenReturn(List.of(testMainAccount, testAccountSavings));
 
             Exception ex = assertThrows(IllegalStateException.class,

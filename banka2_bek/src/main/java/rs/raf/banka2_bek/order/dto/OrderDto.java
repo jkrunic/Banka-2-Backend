@@ -29,6 +29,7 @@ public class OrderDto {
     private boolean allOrNone;
     private boolean margin;
     private BigDecimal approximatePrice;
+    private Long accountId;
     private LocalDateTime createdAt;
     private LocalDateTime lastModification;
 }

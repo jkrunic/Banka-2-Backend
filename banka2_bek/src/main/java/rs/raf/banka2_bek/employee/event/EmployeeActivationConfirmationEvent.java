@@ -6,8 +6,8 @@ import org.springframework.context.ApplicationEvent;
 @Getter
 public class EmployeeActivationConfirmationEvent extends ApplicationEvent {
 
-    public String email;
-    public String firstName;
+    private final String email;
+    private final String firstName;
 
 
     public EmployeeActivationConfirmationEvent(Object source, String email, String firstName) {

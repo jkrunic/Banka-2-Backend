@@ -6,11 +6,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import rs.raf.banka2_bek.stock.model.Listing;
+import rs.raf.banka2_bek.stock.repository.ListingDailyPriceInfoRepository;
 import rs.raf.banka2_bek.stock.repository.ListingRepository;
 import rs.raf.banka2_bek.stock.service.implementation.ListingServiceImpl;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,6 +25,9 @@ class ListingServiceTest {
     @Mock
     private ListingRepository listingRepository;
 
+    @Mock
+    private ListingDailyPriceInfoRepository dailyPriceRepository;
+
     @InjectMocks
     private ListingServiceImpl listingService;
 
@@ -30,11 +35,13 @@ class ListingServiceTest {
     void testRefreshPrices() {
         // 1. Priprema podataka
         Listing mockListing = new Listing();
+        mockListing.setId(1L);
         mockListing.setPrice(BigDecimal.valueOf(100.00));
         mockListing.setVolume(1000L);
         mockListing.setLastRefresh(LocalDateTime.now().minusHours(1));
 
         when(listingRepository.findAll()).thenReturn(List.of(mockListing));
+        when(dailyPriceRepository.findByListingIdAndDate(any(), any())).thenReturn(Collections.emptyList());
 
         // 2. Izvršavanje tvoje metode
         listingService.refreshPrices();

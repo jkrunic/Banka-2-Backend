@@ -103,6 +103,7 @@ public class ClientServiceImpl implements ClientService {
 
         // Sync with users table
         userRepository.findByEmail(client.getEmail()).ifPresent(user -> {
+            if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
             if (request.getLastName() != null) user.setLastName(request.getLastName());
             if (request.getPhone() != null) user.setPhone(request.getPhone());
             if (request.getAddress() != null) user.setAddress(request.getAddress());

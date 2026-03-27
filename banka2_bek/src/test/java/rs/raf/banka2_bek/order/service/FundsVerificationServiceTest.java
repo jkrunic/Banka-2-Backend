@@ -106,11 +106,11 @@ class FundsVerificationServiceTest {
         }
 
         @Test
-        @DisplayName("MARKET BUY — provizija je min(14%,7) — veća cena, limit 7")
+        @DisplayName("MARKET BUY — provizija je max(14%,7) — veća cena, 14% dominira")
         void marketBuyCommissionCappedAt7() {
-            // approxPrice=1000, 14%=140, capped=7, required=1007
+            // approxPrice=1000, 14%=140, max(140,7)=140, required=1140
             BigDecimal approxPrice = new BigDecimal("1000");
-            Account account = accountWithBalance(new BigDecimal("1010"), new BigDecimal("1010"));
+            Account account = accountWithBalance(new BigDecimal("1200"), new BigDecimal("1200"));
             when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
             assertDoesNotThrow(() ->
@@ -118,11 +118,11 @@ class FundsVerificationServiceTest {
         }
 
         @Test
-        @DisplayName("LIMIT BUY — provizija je min(24%,12)")
+        @DisplayName("LIMIT BUY — provizija je max(24%,12)")
         void limitBuyCommission() {
-            // approxPrice=100, 24%=24, capped=12, required=112
+            // approxPrice=100, 24%=24, max(24,12)=24, required=124
             BigDecimal approxPrice = new BigDecimal("100");
-            Account account = accountWithBalance(new BigDecimal("115"), new BigDecimal("115"));
+            Account account = accountWithBalance(new BigDecimal("130"), new BigDecimal("130"));
             when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
             assertDoesNotThrow(() ->
@@ -143,11 +143,11 @@ class FundsVerificationServiceTest {
         }
 
         @Test
-        @DisplayName("STOP BUY — nema unapred provizije, samo approximatePrice")
+        @DisplayName("STOP BUY — provizija kao MARKET: max(14%,7)")
         void stopBuyNoCommission() {
-            // approxPrice=100, commission=0, required=100, balance=100
+            // approxPrice=100, 14%=14, max(14,7)=14, required=114
             BigDecimal approxPrice = new BigDecimal("100");
-            Account account = accountWithBalance(new BigDecimal("100"), new BigDecimal("100"));
+            Account account = accountWithBalance(new BigDecimal("120"), new BigDecimal("120"));
             when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
             assertDoesNotThrow(() ->
@@ -155,10 +155,11 @@ class FundsVerificationServiceTest {
         }
 
         @Test
-        @DisplayName("STOP_LIMIT BUY — nema unapred provizije")
+        @DisplayName("STOP_LIMIT BUY — provizija kao LIMIT: max(24%,12)")
         void stopLimitBuyNoCommission() {
+            // approxPrice=100, 24%=24, max(24,12)=24, required=124
             BigDecimal approxPrice = new BigDecimal("100");
-            Account account = accountWithBalance(new BigDecimal("100"), new BigDecimal("100"));
+            Account account = accountWithBalance(new BigDecimal("130"), new BigDecimal("130"));
             when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
             assertDoesNotThrow(() ->
@@ -237,10 +238,10 @@ class FundsVerificationServiceTest {
         @Test
         @DisplayName("STOCK margin — availableBalance (kredit) > initialMarginCost → prolazi")
         void stockMarginCreditSufficient() {
-            // price=100, initialMarginCost=55, balance=0, credit=100
+            // price=100, initialMarginCost=55, balance=10 (>=7 commission), credit=100
             CreateOrderDto dto = buyDto(1L);
             dto.setMargin(true);
-            Account acc = accountWithBalance(new BigDecimal("0"), new BigDecimal("100"));
+            Account acc = accountWithBalance(new BigDecimal("10"), new BigDecimal("100"));
             when(accountRepository.findById(1L)).thenReturn(Optional.of(acc));
 
             assertDoesNotThrow(() ->

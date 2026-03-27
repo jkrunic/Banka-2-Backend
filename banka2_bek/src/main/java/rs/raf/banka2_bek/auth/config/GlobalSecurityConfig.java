@@ -64,7 +64,7 @@ public class GlobalSecurityConfig  {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/cards/requests").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers("/loans/requests/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(org.springframework.http.HttpMethod.GET,"/orders").hasRole("ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/listings/refresh").hasRole("EMPLOYEE")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/listings/refresh").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers("/actuaries/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN", "SUPERVISOR")
                         .requestMatchers(HttpMethod.POST, "/orders").authenticated()
                         .requestMatchers(HttpMethod.GET, "/orders/my").authenticated()

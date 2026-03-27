@@ -1,28 +1,21 @@
-package rs.raf.banka2_bek.actuary.controller.exception_handler;
+package rs.raf.banka2_bek.card.controller.exception_handler;
 
-import jakarta.persistence.EntityNotFoundException;
+import rs.raf.banka2_bek.card.controller.CardController;
+
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import rs.raf.banka2_bek.actuary.controller.ActuaryController;
 
-import java.util.Map;
-
-@RestControllerAdvice(assignableTypes = ActuaryController.class)
-public class ActuaryExceptionHandler {
-
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleNotFound(EntityNotFoundException ex) {
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", ex.getMessage()));
-    }
+@RestControllerAdvice(assignableTypes = CardController.class)
+public class CardExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
+                .status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", ex.getMessage()));
     }
 
@@ -31,5 +24,12 @@ public class ActuaryExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
                 .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", ex.getMessage() != null ? ex.getMessage() : "Unexpected error"));
     }
 }

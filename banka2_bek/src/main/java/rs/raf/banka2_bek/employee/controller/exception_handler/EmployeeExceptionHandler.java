@@ -11,7 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@RestControllerAdvice
+@RestControllerAdvice(assignableTypes = rs.raf.banka2_bek.employee.controller.EmployeeController.class)
 public class EmployeeExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)

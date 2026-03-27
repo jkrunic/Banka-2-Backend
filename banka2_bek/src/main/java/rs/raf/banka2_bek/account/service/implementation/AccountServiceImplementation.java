@@ -200,11 +200,14 @@ public class AccountServiceImplementation implements AccountService {
 
         // Send email notification
         if (client != null && client.getEmail() != null) {
+            String accountTypeLabel = account.getAccountType() != null
+                    ? account.getAccountType().name() + " (" + account.getCurrency().getCode() + ")"
+                    : account.getCurrency().getCode();
             eventPublisher.publishEvent(new AccountCreatedEvent(
                     client.getEmail(),
                     client.getFirstName() + " " + client.getLastName(),
                     account.getAccountNumber(),
-                    account.getCurrency().getCode()));
+                    accountTypeLabel));
         }
 
         return toResponse(account);
@@ -291,15 +294,7 @@ public class AccountServiceImplementation implements AccountService {
     @Override
     @Transactional
     public AccountResponseDto updateAccountName(Long accountId, String newName) {
-        Account account = accountRepository.findById(accountId).orElseThrow(()->new IllegalArgumentException("Account with ID " + accountId + " not found."));
-
-        //samo vlasnik moze da menja naziv
-        Client client = getAuthenticatedClient();
-        if (account.getClient() == null || !account.getClient().getId().equals(client.getId())) {
-            throw new IllegalStateException(
-                    "You do not have access to account with ID " + accountId + "."
-            );
-        }
+        Account account = checkAuth(accountId);
 
         // novo ime ne sme biti isto kao staro
         if (newName.equals(account.getName())) {
@@ -307,16 +302,19 @@ public class AccountServiceImplementation implements AccountService {
                     "New account name must differ from the current name."
             );
         }
-        //novo ime mora da se ne poklapa izmedju racuna
-        boolean nameExists = accountRepository
-                .findByClientIdAndStatusOrderByAvailableBalanceDesc(client.getId(), AccountStatus.ACTIVE)
-                .stream()
-                .anyMatch(a -> newName.equals(a.getName()) && !a.getId().equals(accountId));
 
-        if (nameExists) {
-            throw new IllegalStateException(
-                    "Account name '" + newName + "' is already used by another account."
-            );
+        // Proveri duplikat imena medju racunima istog vlasnika
+        Client client = getOptionalClient();
+        if (client != null) {
+            List<Account> clientAccounts = accountRepository.findAccessibleAccounts(
+                    client.getId(), AccountStatus.ACTIVE);
+            boolean nameExists = clientAccounts.stream()
+                    .anyMatch(a -> newName.equals(a.getName()) && !a.getId().equals(accountId));
+            if (nameExists) {
+                throw new IllegalStateException(
+                        "Account name '" + newName + "' is already used by another account."
+                );
+            }
         }
 
         account.setName(newName);
@@ -398,6 +396,9 @@ public class AccountServiceImplementation implements AccountService {
                 .currency(account.getCurrency().getCode())
                 .dailyLimit(account.getDailyLimit())
                 .monthlyLimit(account.getMonthlyLimit())
+                .dailySpending(account.getDailySpending())
+                .monthlySpending(account.getMonthlySpending())
+                .maintenanceFee(account.getMaintenanceFee())
                 .expirationDate(account.getExpirationDate())
                 .createdAt(account.getCreatedAt())
                 .createdByEmployee(employeeName);

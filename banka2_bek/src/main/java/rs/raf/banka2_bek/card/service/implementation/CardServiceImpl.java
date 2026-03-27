@@ -89,8 +89,17 @@ public class CardServiceImpl implements CardService {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new RuntimeException("Kartica nije pronadjena"));
 
+        // Samo vlasnik kartice moze da je blokira
+        Client client = getOptionalClient();
+        if (client != null && (card.getClient() == null || !card.getClient().getId().equals(client.getId()))) {
+            throw new RuntimeException("Nemate pristup ovoj kartici");
+        }
+
         if (card.getStatus() == CardStatus.DEACTIVATED) {
-            throw new RuntimeException("Deaktivirana kartica se ne moze blokirati");
+            throw new RuntimeException("Deaktivirana kartica se ne moze blokirati. Deaktivirane kartice ne mogu biti ponovo aktivirane.");
+        }
+        if (card.getStatus() == CardStatus.BLOCKED) {
+            throw new RuntimeException("Kartica je vec blokirana");
         }
         card.setStatus(CardStatus.BLOCKED);
         CardResponseDto response = toMaskedResponse(cardRepository.save(card));
@@ -134,6 +143,10 @@ public class CardServiceImpl implements CardService {
     public CardResponseDto deactivateCard(Long cardId) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new RuntimeException("Kartica nije pronadjena"));
+
+        if (card.getStatus() == CardStatus.DEACTIVATED) {
+            throw new RuntimeException("Kartica je vec deaktivirana. Deaktivirane kartice ne mogu biti ponovo aktivirane.");
+        }
 
         card.setStatus(CardStatus.DEACTIVATED);
         return toMaskedResponse(cardRepository.save(card));
@@ -190,6 +203,7 @@ public class CardServiceImpl implements CardService {
                 .cardNumber(card.getCardNumber())
                 .cardName(card.getCardName())
                 .cvv(card.getCvv())
+                .accountId(card.getAccount().getId())
                 .accountNumber(card.getAccount().getAccountNumber())
                 .ownerName(card.getClient().getFirstName() + " " + card.getClient().getLastName())
                 .cardLimit(card.getCardLimit())
@@ -205,6 +219,7 @@ public class CardServiceImpl implements CardService {
                 .cardNumber(maskCardNumber(card.getCardNumber()))
                 .cardName(card.getCardName())
                 .cvv(null)
+                .accountId(card.getAccount().getId())
                 .accountNumber(card.getAccount().getAccountNumber())
                 .ownerName(card.getClient().getFirstName() + " " + card.getClient().getLastName())
                 .cardLimit(card.getCardLimit())

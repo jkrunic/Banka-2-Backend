@@ -31,5 +31,7 @@ public class CreatePaymentRequestDto {
 
     @NotBlank(message = "Description is required")
     private String description;
+
+    private String recipientName;
 }
 

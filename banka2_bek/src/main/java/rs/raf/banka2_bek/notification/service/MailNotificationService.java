@@ -40,7 +40,7 @@ public class MailNotificationService {
                                    @Value("${notification.password-reset-url-base}") String passwordResetUrlBase,
                                    @Value("${notification.password-reset-page-path:/reset-password}") String passwordResetPagePath,
                                    @Value("${notification.activation-url-base}") String activationUrlBase,
-                                   @Value("${notification.activation-page-path:/activate}") String activationPagePath) {
+                                   @Value("${notification.activation-page-path:/activate-account}") String activationPagePath) {
         this.mailSender = mailSender;
         this.passwordResetEmailTemplate = passwordResetEmailTemplate;
         this.activationEmailTemplate = activationEmailTemplate;

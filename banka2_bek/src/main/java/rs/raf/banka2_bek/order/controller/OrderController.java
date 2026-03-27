@@ -1,5 +1,6 @@
 package rs.raf.banka2_bek.order.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -11,13 +12,9 @@ import rs.raf.banka2_bek.order.service.OrderService;
 
 /**
  * Controller za kreiranje i upravljanje orderima.
- *
- * TODO: Dodati u GlobalSecurityConfig:
- *   .requestMatchers(HttpMethod.POST, "/orders").hasAnyRole("ADMIN", "CLIENT", "EMPLOYEE")
- *   .requestMatchers(HttpMethod.GET, "/orders/my").hasAnyRole("ADMIN", "CLIENT", "EMPLOYEE")
- *   .requestMatchers(HttpMethod.GET, "/orders").hasAnyRole("ADMIN")           // supervizor portal
- *   .requestMatchers("/orders/{id}/approve", "/orders/{id}/decline").hasAnyRole("ADMIN")
+ * SecurityConfig je vec konfigurisan za ove rute.
  */
+@Tag(name = "Orders", description = "Kreiranje i upravljanje nalozima za trgovinu hartijama od vrednosti")
 @RestController
 @RequestMapping("/orders")
 @RequiredArgsConstructor

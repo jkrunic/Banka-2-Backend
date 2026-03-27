@@ -53,6 +53,8 @@ public class AuthService {
         user.setUsername(request.getUsername());
         user.setPhone(request.getPhone());
         user.setAddress(request.getAddress());
+        user.setDateOfBirth(request.getDateOfBirth());
+        user.setGender(request.getGender());
         user.setActive(true);
         user.setRole("CLIENT");
 
@@ -140,9 +142,13 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("Reset token does not exist"));
 
 
-        if(passwordResetToken.getExpiresAt().isBefore(LocalDateTime.now())) return "Reset token has expired";
+        if(passwordResetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Reset token has expired");
+        }
 
-        if(passwordResetToken.getUsed()) return "Reset token has been already used";
+        if(passwordResetToken.getUsed()) {
+            throw new RuntimeException("Reset token has been already used");
+        }
 
         User user = passwordResetToken.getUser();
         Employee employee = passwordResetToken.getEmployee();

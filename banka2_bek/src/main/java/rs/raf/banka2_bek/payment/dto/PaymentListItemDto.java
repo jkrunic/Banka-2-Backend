@@ -15,6 +15,7 @@ public class PaymentListItemDto {
     String fromAccount;
     String toAccount;
     BigDecimal amount;
+    BigDecimal fee;
     String currency;
     String recipientName;
     String description;

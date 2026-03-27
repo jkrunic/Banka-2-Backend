@@ -37,6 +37,13 @@ public class AccountResponseDto {
     private BigDecimal dailyLimit;
     private BigDecimal monthlyLimit;
 
+    // potrosnja
+    private BigDecimal dailySpending;
+    private BigDecimal monthlySpending;
+
+    // naknada
+    private BigDecimal maintenanceFee;
+
     private LocalDate expirationDate;
     private LocalDateTime createdAt;
 

@@ -155,8 +155,34 @@ public class ListingServiceImpl implements ListingService {
             listing.setLastRefresh(LocalDateTime.now());
 
             // Ažuriramo i volume (nasumično)
-            if (listing.getVolume() != null) {
-                listing.setVolume((long) (listing.getVolume() * (0.9 + (0.2 * random.nextDouble()))));
+            long newVolume = listing.getVolume() != null
+                    ? (long) (listing.getVolume() * (0.9 + (0.2 * random.nextDouble())))
+                    : 100000L;
+            listing.setVolume(newVolume);
+
+            // Save daily price snapshot for history chart
+            LocalDate today = LocalDate.now();
+            List<ListingDailyPriceInfo> existingToday = dailyPriceRepository
+                    .findByListingIdAndDate(listing.getId(), today);
+            if (existingToday.isEmpty()) {
+                ListingDailyPriceInfo dailyPrice = new ListingDailyPriceInfo();
+                dailyPrice.setListing(listing);
+                dailyPrice.setDate(today);
+                dailyPrice.setPrice(newPrice);
+                dailyPrice.setHigh(newAsk);
+                dailyPrice.setLow(newBid);
+                dailyPrice.setChange(priceChange);
+                dailyPrice.setVolume(newVolume);
+                dailyPriceRepository.save(dailyPrice);
+            } else {
+                // Update existing daily record with latest high/low
+                ListingDailyPriceInfo existing = existingToday.get(0);
+                existing.setPrice(newPrice);
+                if (newAsk.compareTo(existing.getHigh()) > 0) existing.setHigh(newAsk);
+                if (newBid.compareTo(existing.getLow()) < 0) existing.setLow(newBid);
+                existing.setChange(priceChange);
+                existing.setVolume(newVolume);
+                dailyPriceRepository.save(existing);
             }
         }
 
