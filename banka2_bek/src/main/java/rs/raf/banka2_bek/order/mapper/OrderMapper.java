@@ -17,11 +17,16 @@ public final class OrderMapper {
     private OrderMapper() {}
 
     public static OrderDto toDto(Order order) {
+        return toDto(order, null);
+    }
+
+    public static OrderDto toDto(Order order, String userName) {
         if (order == null) return null;
 
         OrderDto dto = new OrderDto();
         dto.setId(order.getId());
         dto.setListingId(order.getListing() != null ? order.getListing().getId() : null);
+        dto.setUserName(userName);
         dto.setUserRole(order.getUserRole());
         dto.setListingTicker(order.getListing() != null ? order.getListing().getTicker() : null);
         dto.setListingName(order.getListing() != null ? order.getListing().getName() : null);

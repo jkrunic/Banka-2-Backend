@@ -3,6 +3,7 @@ package rs.raf.banka2_bek.auth.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -18,6 +19,7 @@ import java.util.List;
 
 
 @Configuration
+@EnableMethodSecurity
 public class GlobalSecurityConfig  {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -63,7 +65,13 @@ public class GlobalSecurityConfig  {
                         .requestMatchers("/loans/requests/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(org.springframework.http.HttpMethod.GET,"/orders").hasRole("ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/listings/refresh").hasRole("EMPLOYEE")
-                        .requestMatchers("/actuaries/**").hasAnyAuthority("ADMIN", "SUPERVISOR")
+                        .requestMatchers("/actuaries/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN", "SUPERVISOR")
+                        .requestMatchers(HttpMethod.POST, "/orders").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/orders/my").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/orders/{id}").authenticated()
+                        .requestMatchers("/orders/*/approve", "/orders/*/decline").hasAnyRole("ADMIN")
+                        .requestMatchers("/portfolio/**").authenticated()
+                        .requestMatchers("/tax/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN", "SUPERVISOR")
                         .anyRequest().authenticated()
                 )
                 .formLogin(AbstractHttpConfigurer::disable)

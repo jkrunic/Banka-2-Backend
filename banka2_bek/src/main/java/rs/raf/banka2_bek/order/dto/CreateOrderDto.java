@@ -19,9 +19,8 @@ public class CreateOrderDto {
     @Min(value = 1, message = "Quantity and contractSize must be > 0")
     private Integer quantity;
 
-    @NotNull(message = "Contract size je obavezan")
-    @Min(value = 1, message = "Quantity and contractSize must be > 0")
-    private Integer contractSize;
+    @Min(value = 1, message = "Contract size must be > 0")
+    private Integer contractSize = 1;
 
     @NotNull(message = "Smer je obavezan (BUY, SELL)")
     private String direction;

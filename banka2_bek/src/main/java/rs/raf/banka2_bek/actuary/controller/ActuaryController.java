@@ -61,7 +61,7 @@ public class ActuaryController {
      * Supervizor rucno resetuje dnevni limit agenta.
      */
     @PatchMapping("/{employeeId}/reset-limit")
-    @PreAuthorize("hasRole('SUPERVISOR')")
+    @PreAuthorize("hasAuthority('SUPERVISOR') or hasRole('ADMIN')")
     public ResponseEntity<ActuaryInfoDto> resetUsedLimit(@PathVariable Long employeeId) {
         return ResponseEntity.ok(actuaryService.resetUsedLimit(employeeId));
     }

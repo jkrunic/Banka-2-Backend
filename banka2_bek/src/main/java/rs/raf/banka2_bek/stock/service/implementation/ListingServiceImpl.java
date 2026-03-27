@@ -16,7 +16,6 @@ import rs.raf.banka2_bek.stock.model.Listing;
 
 import jakarta.transaction.Transactional;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
 
 import rs.raf.banka2_bek.stock.model.ListingType;
 import rs.raf.banka2_bek.stock.repository.ListingDailyPriceInfoRepository;

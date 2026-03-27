@@ -148,8 +148,8 @@ class OrderControllerTest {
         }
 
         @Test
-        @DisplayName("Nedostaje contractSize → 400")
-        void missingContractSizeReturns400() throws Exception {
+        @DisplayName("contractSize je opciono polje sa default vrednošću 1 → prolazi validaciju")
+        void missingContractSizeDefaultsTo1() throws Exception {
             String json = """
                     {
                       "listingId": 1,
@@ -163,7 +163,7 @@ class OrderControllerTest {
             mockMvc.perform(post("/orders")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isOk());
         }
 
         @Test

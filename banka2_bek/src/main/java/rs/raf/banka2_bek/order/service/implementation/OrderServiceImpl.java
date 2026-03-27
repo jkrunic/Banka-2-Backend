@@ -117,7 +117,7 @@ public class OrderServiceImpl implements OrderService {
 
         // Step 10: Hook — orderExecutionService.scheduleExecution(savedOrder) — not yet implemented
 
-        return OrderMapper.toDto(savedOrder);
+        return toDtoWithUserName(savedOrder);
     }
 
     @Override
@@ -149,14 +149,14 @@ public class OrderServiceImpl implements OrderService {
             order.setApprovedBy(supervisorName);
             order.setLastModification(LocalDateTime.now());
             Order saved = orderRepository.save(order);
-            return OrderMapper.toDto(saved);
+            return toDtoWithUserName(saved);
         }
         order.setStatus(OrderStatus.APPROVED);
         order.setApprovedBy(supervisorName);
         order.setLastModification(LocalDateTime.now());
 
         Order saved = orderRepository.save(order);
-        return OrderMapper.toDto(saved);
+        return toDtoWithUserName(saved);
     }
 
     @Override
@@ -175,7 +175,7 @@ public class OrderServiceImpl implements OrderService {
         order.setLastModification(LocalDateTime.now());
 
         Order saved = orderRepository.save(order);
-        return OrderMapper.toDto(saved);
+        return toDtoWithUserName(saved);
     }
 
     @Override
@@ -183,7 +183,7 @@ public class OrderServiceImpl implements OrderService {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         if (status == null || status.isBlank() || status.equalsIgnoreCase("ALL")) {
-            return orderRepository.findAll(pageable).map(OrderMapper::toDto);
+            return orderRepository.findAll(pageable).map(this::toDtoWithUserName);
         }
 
         OrderStatus orderStatus;
@@ -194,7 +194,7 @@ public class OrderServiceImpl implements OrderService {
                     ". Valid status: ALL, PENDING, APPROVED, DECLINED, DONE");
         }
 
-        return orderRepository.findByStatus(orderStatus, pageable).map(OrderMapper::toDto);
+        return orderRepository.findByStatus(orderStatus, pageable).map(this::toDtoWithUserName);
     }
 
     @Override
@@ -204,12 +204,12 @@ public class OrderServiceImpl implements OrderService {
 
         Optional<Client> clientOpt = clientRepository.findByEmail(email);
         if (clientOpt.isPresent()) {
-            return orderRepository.findByUserId(clientOpt.get().getId(), pageable).map(OrderMapper::toDto);
+            return orderRepository.findByUserId(clientOpt.get().getId(), pageable).map(this::toDtoWithUserName);
         }
 
         Employee employee = employeeRepository.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
-        return orderRepository.findByUserId(employee.getId(), pageable).map(OrderMapper::toDto);
+        return orderRepository.findByUserId(employee.getId(), pageable).map(this::toDtoWithUserName);
     }
     @Override
     public OrderDto getOrderById(Long orderId) {
@@ -221,7 +221,7 @@ public class OrderServiceImpl implements OrderService {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         if (isSupervisor) {
-            return OrderMapper.toDto(order);
+            return toDtoWithUserName(order);
         }
 
         Long currentUserId = resolveCurrentUser().userId();
@@ -229,7 +229,7 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalStateException("You dont have access to this account");
         }
 
-        return OrderMapper.toDto(order);
+        return toDtoWithUserName(order);
     }
 
     private UserContext resolveCurrentUser() {
@@ -268,6 +268,22 @@ public class OrderServiceImpl implements OrderService {
         return employeeRepository.findById(userContext.userId())
                 .map(e -> e.getFirstName() + " " + e.getLastName())
                 .orElseThrow(() -> new IllegalStateException("Supervisor not found"));
+    }
+
+    private String resolveUserName(Long userId, String userRole) {
+        if ("CLIENT".equals(userRole)) {
+            return clientRepository.findById(userId)
+                    .map(c -> c.getFirstName() + " " + c.getLastName())
+                    .orElse("Unknown");
+        }
+        return employeeRepository.findById(userId)
+                .map(e -> e.getFirstName() + " " + e.getLastName())
+                .orElse("Unknown");
+    }
+
+    private OrderDto toDtoWithUserName(Order order) {
+        String userName = resolveUserName(order.getUserId(), order.getUserRole());
+        return OrderMapper.toDto(order, userName);
     }
 
     private record UserContext(Long userId, String userRole) {}
