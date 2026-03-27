@@ -49,7 +49,7 @@ public class OtpService {
 
         otpRepository.save(otp);
 
-        mailNotificationService.sendOtpMail(email, code, expiryMinutes);
+        // OTP se prikazuje na mobilnoj aplikaciji - email se ne salje
     }
 
     @Transactional(readOnly = true)
