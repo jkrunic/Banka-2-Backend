@@ -36,25 +36,19 @@ public class OrderScheduler {
      */
     @Scheduled(fixedRate = 30000)
     public void processStopOrders() {
-        /*
-         * TODO: Implementirati poziv StopOrderActivationService
-         *
-         * 1. Obaviti poziv unutar try-catch bloka:
-         *    try {
-         *        stopOrderActivationService.checkAndActivateStopOrders();
-         *    } catch (Exception e) {
-         *        log.error("Error processing stop orders: {}", e.getMessage(), e);
-         *    }
-         *
-         * 2. Opciono: dodati metriku (broj aktiviranih naloga po ciklusu)
-         *    za monitoring putem Actuator-a ili custom metrike.
-         *
-         * 3. Opciono: dodati log na DEBUG nivou za pocetak i kraj ciklusa:
-         *    log.debug("Stop order check cycle started");
-         *    ...
-         *    log.debug("Stop order check cycle completed");
-         */
-        log.info("TODO: implementirati"); // stub
+
+        log.debug("Stop order check cycle started");
+
+            try {
+                stopOrderActivationService.checkAndActivateStopOrders();
+            } catch (Exception e) {
+                log.error("Error processing stop orders: {}", e.getMessage(), e);
+            }
+
+         /* 2. Opciono: dodati metriku (broj aktiviranih naloga po ciklusu)
+             za monitoring putem Actuator-a ili custom metrike.*/
+
+        log.debug("Stop order check cycle completed");
     }
 
     /**
@@ -63,25 +57,22 @@ public class OrderScheduler {
      */
     @Scheduled(fixedRate = 10000)
     public void executeApprovedOrders() {
-        /*
-         * TODO: Implementirati poziv OrderExecutionService
-         *
-         * 1. Obaviti poziv unutar try-catch bloka:
-         *    try {
-         *        orderExecutionService.executeOrders();
-         *    } catch (Exception e) {
-         *        log.error("Error executing approved orders: {}", e.getMessage(), e);
-         *    }
-         *
-         * 2. Opciono: dodati metriku (broj izvrsenih fill-ova po ciklusu).
-         *
-         * 3. Opciono: proveriti da li je berza otvorena pre pokretanja:
-         *    - Ako se ne trguje vikendom, preskociti ciklus (ali after-hours nalozi
-         *      se ipak izvrsavaju van radnog vremena berze).
-         *    - Za sada, izvrsavati uvek (24/7 simulacija).
-         *
-         * 4. Log na DEBUG nivou za pocetak/kraj ciklusa.
-         */
-        log.info("TODO: implementirati"); // stub
+
+        log.debug("Execute approved orders cycle started");
+
+             try {
+                 orderExecutionService.executeOrders();
+             } catch (Exception e) {
+                 log.error("Error executing approved orders: {}", e.getMessage(), e);
+             }
+
+         //2. Opciono: dodati metriku (broj izvrsenih fill-ova po ciklusu).
+
+         /*3. Opciono: proveriti da li je berza otvorena pre pokretanja:
+             - Ako se ne trguje vikendom, preskociti ciklus (ali after-hours nalozi
+               se ipak izvrsavaju van radnog vremena berze).
+               Za sada, izvrsavati uvek (24/7 simulacija). */
+
+        log.debug("Execute approved orders cycle completed");
     }
 }

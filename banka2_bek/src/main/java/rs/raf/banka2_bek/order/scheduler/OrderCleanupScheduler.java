@@ -59,26 +59,25 @@ public class OrderCleanupScheduler {
     @Scheduled(cron = "0 0 1 * * *")
     @Transactional
     public void cleanupExpiredOrders() {
-        // TODO: Implementirati prema uputstvima iznad
-        // log.info("Pokrecem ciscenje isteklih ordera...");
-        //
-        // List<Order> approvedOrders = orderRepository.findByStatusAndIsDoneFalse(OrderStatus.APPROVED);
-        // LocalDateTime now = LocalDateTime.now();
-        // int declinedCount = 0;
-        //
-        // for (Order order : approvedOrders) {
-        //     if (order.getLastModification() != null && order.getLastModification().isBefore(now.minusDays(1))) {
-        //         order.setStatus(OrderStatus.DECLINED);
-        //         order.setApprovedBy("SYSTEM - Settlement date expired");
-        //         order.setLastModification(now);
-        //         orderRepository.save(order);
-        //         log.info("Order {} (user={}, listing={}) declined - settlement date expired",
-        //                  order.getId(), order.getUserId(), order.getListing().getId());
-        //         declinedCount++;
-        //     }
-        // }
-        //
-        // log.info("Ciscenje isteklih ordera zavrseno. Ukupno odbijeno: {}", declinedCount);
-        log.info("Cleanup expired orders - TODO: implementirati");
+
+        log.info("Pokrecem ciscenje isteklih ordera...");
+
+        List<Order> approvedOrders = orderRepository.findByStatusAndIsDoneFalse(OrderStatus.APPROVED);
+        LocalDateTime now = LocalDateTime.now();
+        int declinedCount = 0;
+
+        for (Order order : approvedOrders) {
+            if (order.getLastModification() != null && order.getLastModification().isBefore(now.minusDays(1))) {
+                 order.setStatus(OrderStatus.DECLINED);
+                 order.setApprovedBy("SYSTEM - Settlement date expired");
+                 order.setLastModification(now);
+                 orderRepository.save(order);
+                 log.info("Order {} (user={}, listing={}) declined - settlement date expired",
+                          order.getId(), order.getUserId(), order.getListing().getId());
+                 declinedCount++;
+             }
+         }
+
+        log.info("Ciscenje isteklih ordera zavrseno. Ukupno odbijeno: {}", declinedCount);
     }
 }
