@@ -6,11 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rs.raf.banka2_bek.account.repository.AccountRepository;
-import rs.raf.banka2_bek.auth.config.GlobalSecurityConfig;
 import rs.raf.banka2_bek.auth.model.User;
 import rs.raf.banka2_bek.auth.repository.UserRepository;
 import rs.raf.banka2_bek.margin.dto.CreateMarginAccountDto;
@@ -134,33 +132,33 @@ public class MarginAccountService {
         );
 
         // 1. find MarginAccount by id
-        MarginAccount marginAccount = marginAccountRepository.findById(marginAccountId)
+        MarginAccount account = marginAccountRepository.findById(marginAccountId)
                 .orElseThrow(() -> new EntityNotFoundException("Account not found with id: " + marginAccountId));
 
         // OWNERSHIP CHECK
-        if (!user.getId().equals(marginAccount.getUserId()))
+        if (!user.getId().equals(account.getUserId()))
             throw new IllegalStateException("Access denied.");
 
         // 2. increase initialMargin for the amount
-        BigDecimal updatedInitialMargin = marginAccount.getInitialMargin().add(amount);
-        marginAccount.setInitialMargin(updatedInitialMargin);
+        BigDecimal updatedInitialMargin = account.getInitialMargin().add(amount);
+        account.setInitialMargin(updatedInitialMargin);
 
         // 3. set new maintenanceMargin = initialMargin * MAINTENANCE_FACTOR
-        marginAccount.setMaintenanceMargin(marginAccount.getInitialMargin().multiply(MAINTENANCE_FACTOR));
+        account.setMaintenanceMargin(account.getInitialMargin().multiply(MAINTENANCE_FACTOR));
 
         // 4. if account could be unblocked -> activate it
-        boolean isBlocked = marginAccount.getStatus().equals(MarginAccountStatus.BLOCKED);
-        if (isBlocked) marginAccount.setStatus(MarginAccountStatus.ACTIVE);
+        boolean isBlocked = account.getStatus().equals(MarginAccountStatus.BLOCKED);
+        if (isBlocked) account.setStatus(MarginAccountStatus.ACTIVE);
 
         // 5. save marginAccount
-        marginAccountRepository.save(marginAccount);
+        marginAccountRepository.save(account);
 
         String transactionDescription =
                 "Executed transaction. Amount deposited: " + amount + ". Current balance: " + updatedInitialMargin + ".";
 
         // 6. create Transaction (type = DEPOSIT)
         MarginTransaction transaction = MarginTransaction.builder()
-                .marginAccount(marginAccount)
+                .marginAccount(account)
                 .type(MarginTransactionType.DEPOSIT)
                 .amount(amount)
                 .description(transactionDescription)
@@ -200,50 +198,49 @@ public class MarginAccountService {
         );
 
         // 1. find MarginAccount by marginAccountId, if it doesn't exist exception is thrown
-        MarginAccount marginAccount = marginAccountRepository.findById(marginAccountId).orElseThrow(
+        MarginAccount account = marginAccountRepository.findById(marginAccountId).orElseThrow(
                 () -> new EntityNotFoundException("Account with id: " + marginAccountId)
         );
 
         // CHECK ACCOUNT OWNERSHIP
-        if (!user.getId().equals(marginAccount.getUserId()))
+        if (!user.getId().equals(account.getUserId()))
             throw new IllegalStateException("Access denied.");
 
         // 2. not active accounts can't do withdraw
-        if (!marginAccount.getStatus().equals(MarginAccountStatus.ACTIVE))
+        if (!account.getStatus().equals(MarginAccountStatus.ACTIVE))
             throw new IllegalStateException("Account with id: " + marginAccountId + " is not active.");
 
         // 3. is initial_margin - amount < maintenance_margin  <==>  initialMargin - amount >= maintenanceMargin
         boolean withdrawalBelowMaintenance =
-                marginAccount.getInitialMargin().subtract(amount).compareTo(marginAccount.getMaintenanceMargin()) < 0;
+                account.getInitialMargin().subtract(amount).compareTo(account.getMaintenanceMargin()) < 0;
 
         // if dropped below maintenance
         if (withdrawalBelowMaintenance)
             throw new IllegalArgumentException(
-                    "Funds in the account cannot be below " + marginAccount.getMaintenanceMargin() + " amount."
+                    "Funds in the account cannot be below " + account.getMaintenanceMargin() + " amount."
             );
 
         // 4. update initialMargin = initialMargin - amount
-        BigDecimal updatedInitialMargin = marginAccount.getInitialMargin().subtract(amount);
-        marginAccount.setInitialMargin(updatedInitialMargin);
 
-        marginAccount.setMaintenanceMargin(marginAccount.getInitialMargin().multiply(MAINTENANCE_FACTOR));
+        account.setInitialMargin(account.getInitialMargin().subtract(amount));
+
+        account.setMaintenanceMargin(account.getInitialMargin().multiply(MAINTENANCE_FACTOR));
 
         // 5. save margin account
-        marginAccountRepository.save(marginAccount);
+        marginAccountRepository.save(account);
 
         // 6. create new Transaction (type = WITHDRAWAL)
-        String transactionDescription =
-                "Executed transaction. Amount withdrawn: " + amount + ". Current balance: " + updatedInitialMargin + ".";
+        String description = "Executed transaction. Amount withdrawn: " + amount + ". Current balance: " + account.getInitialMargin() + ".";
 
-        MarginTransaction marginTransaction = MarginTransaction.builder()
-                .marginAccount(marginAccount)
+        MarginTransaction transaction = MarginTransaction.builder()
+                .marginAccount(account)
                 .type(MarginTransactionType.WITHDRAWAL)
                 .amount(amount)
-                .description(transactionDescription)
+                .description(description)
                 .build();
 
         // 7. save margin transaction
-        marginTransactionRepository.save(marginTransaction);
+        marginTransactionRepository.save(transaction);
 
         log.info("Withdraw {} from margin account {}", amount, marginAccountId);
     }
