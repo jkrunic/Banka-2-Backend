@@ -184,21 +184,30 @@ public class MarginAccountService {
      * Dnevna provera maintenance margine za sve aktivne margin racune.
      * Pokrece se automatski svaki dan u ponoc.
      * <p>
-     * TODO: Implementirati logiku:
-     *   1. Dohvatiti sve margin racune sa statusom ACTIVE
-     *   2. Za svaki racun proveriti: da li je initialMargin < maintenanceMargin?
-     *   3. Ako jeste — margin call:
-     *      - Postaviti status na BLOCKED
-     *      - Sacuvati racun
-     *      - Logirati "MARGIN CALL: Account {} blocked. initialMargin={}, maintenanceMargin={}"
-     *   4. Na kraju logirati ukupan broj blokiranih racuna
+     * TODO: Implementirati logiku
      *   5. TODO (buducnost): Poslati email notifikaciju korisniku o margin call-u
      */
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void checkMaintenanceMargin() {
-        // TODO: Implement margin call logic for all active accounts
+
         log.info("Running daily maintenance margin check...");
+
+        List<MarginAccount> activeAccounts = marginAccountRepository.findByStatus(MarginAccountStatus.ACTIVE);
+        int blockedCount = 0;
+
+        for (MarginAccount account : activeAccounts) {
+            if (account.getInitialMargin().compareTo(account.getMaintenanceMargin()) < 0) {
+                account.setStatus(MarginAccountStatus.BLOCKED);
+                marginAccountRepository.save(account);
+                blockedCount++;
+                log.warn("MARGIN CALL: Account {} blocked. initialMargin={}, maintenanceMargin={}",
+                        account.getId(), account.getInitialMargin(), account.getMaintenanceMargin());
+            }
+        }
+
+        log.info("Daily maintenance margin check completed. Amount of blocked accounts : {}.", blockedCount);
+
     }
 
     /**
