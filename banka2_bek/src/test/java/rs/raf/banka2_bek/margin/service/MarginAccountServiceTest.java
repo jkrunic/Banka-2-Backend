@@ -15,7 +15,9 @@ import rs.raf.banka2_bek.account.repository.AccountRepository;
 import rs.raf.banka2_bek.client.model.Client;
 import rs.raf.banka2_bek.client.repository.ClientRepository;
 import rs.raf.banka2_bek.margin.dto.CreateMarginAccountDto;
+import rs.raf.banka2_bek.margin.dto.MarginAccountCheckDto;
 import rs.raf.banka2_bek.margin.dto.MarginAccountDto;
+import rs.raf.banka2_bek.margin.event.MarginAccountBlockedEvent;
 import rs.raf.banka2_bek.margin.model.MarginAccount;
 import rs.raf.banka2_bek.margin.model.MarginAccountStatus;
 import rs.raf.banka2_bek.margin.model.MarginTransaction;
@@ -32,6 +34,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -484,6 +488,54 @@ class MarginAccountServiceTest {
         assertThatThrownBy(() -> marginAccountService.withdraw(1L, new BigDecimal("6000"), auth))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Funds in the account cannot be below");
+    }
+
+    // ── checkMaintenanceMargin() tests ─────────────────────────────────────────
+
+    @Test
+    void checkMaintenanceMargin_doesNothingWhenNoAccountsNeedBlocking() {
+        when(marginAccountRepository.findAccountsForMarginCheck("ACTIVE")).thenReturn(List.of());
+
+        marginAccountService.checkMaintenanceMargin();
+
+        verify(marginAccountRepository).blockAccountsWhereMaintenanceExceedsInitial("BLOCKED");
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void checkMaintenanceMargin_blocksAccountsAndPublishesEvent() {
+        MarginAccountCheckDto account = new MarginAccountCheckDto(
+                1L, "owner@test.com", new BigDecimal("5000"), new BigDecimal("4000")
+        );
+        when(marginAccountRepository.findAccountsForMarginCheck("ACTIVE")).thenReturn(List.of(account));
+
+        marginAccountService.checkMaintenanceMargin();
+
+        verify(marginAccountRepository).blockAccountsWhereMaintenanceExceedsInitial("BLOCKED");
+
+        ArgumentCaptor<MarginAccountBlockedEvent> eventCaptor =
+                ArgumentCaptor.forClass(MarginAccountBlockedEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+
+        MarginAccountBlockedEvent event = eventCaptor.getValue();
+        assertThat(event.getEmail()).isEqualTo("owner@test.com");
+        assertThat(event.getMaintenanceMargin()).isEqualTo("5000");
+        assertThat(event.getInitialMargin()).isEqualTo("4000");
+        assertThat(event.getDeficit()).isEqualTo("1000"); // 5000 - 4000
+    }
+
+    @Test
+    void checkMaintenanceMargin_publishesOneEventPerBlockedAccount() {
+        List<MarginAccountCheckDto> accounts = List.of(
+                new MarginAccountCheckDto(1L, "a@test.com", new BigDecimal("5000"), new BigDecimal("4000")),
+                new MarginAccountCheckDto(2L, "b@test.com", new BigDecimal("6000"), new BigDecimal("3000")),
+                new MarginAccountCheckDto(3L, "c@test.com", new BigDecimal("7000"), new BigDecimal("2000"))
+        );
+        when(marginAccountRepository.findAccountsForMarginCheck("ACTIVE")).thenReturn(accounts);
+
+        marginAccountService.checkMaintenanceMargin();
+
+        verify(eventPublisher, times(3)).publishEvent(any(MarginAccountBlockedEvent.class));
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────

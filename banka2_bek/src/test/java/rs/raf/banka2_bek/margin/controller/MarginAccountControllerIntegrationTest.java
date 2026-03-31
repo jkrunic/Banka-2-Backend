@@ -34,6 +34,7 @@ import rs.raf.banka2_bek.employee.repository.ActivationTokenRepository;
 import rs.raf.banka2_bek.employee.repository.EmployeeRepository;
 import rs.raf.banka2_bek.margin.repository.MarginAccountRepository;
 import rs.raf.banka2_bek.margin.repository.MarginTransactionRepository;
+import rs.raf.banka2_bek.margin.service.MarginAccountService;
 import rs.raf.banka2_bek.margin.model.MarginAccount;
 import rs.raf.banka2_bek.margin.model.MarginAccountStatus;
 import rs.raf.banka2_bek.margin.model.MarginTransactionType;
@@ -65,6 +66,9 @@ class MarginAccountControllerIntegrationTest {
 
     @Autowired
     private MarginTransactionRepository marginTransactionRepository;
+
+    @Autowired
+    private MarginAccountService marginAccountService;
 
     @Autowired
     private MarginAccountRepository marginAccountRepository;
@@ -717,6 +721,68 @@ class MarginAccountControllerIntegrationTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).contains("Funds in the account cannot be below");
+    }
+
+    // ── checkMaintenanceMargin() integration tests ─────────────────────────────
+
+    @Test
+    void checkMaintenanceMargin_blocksAccountWhenMaintenanceExceedsInitial() {
+        Client client = createClient("check.block@test.com");
+        Employee employee = createEmployee("check.block.emp@test.com", "chk.blk.emp");
+        Currency rsd = createCurrency("RSD", "Serbian Dinar", "RSD", "RS");
+        Account account = createAccount("777777777777777901", client, employee, rsd,
+                new BigDecimal("10000.00"), new BigDecimal("10000.00"));
+        MarginAccount marginAccount = createMarginAccount(account, client,
+                MarginAccountStatus.ACTIVE, new BigDecimal("4000.0000"), new BigDecimal("5000.0000"));
+
+        marginAccountService.checkMaintenanceMargin();
+
+        entityManager.clear();
+        MarginAccount updated = marginAccountRepository.findById(marginAccount.getId()).orElseThrow();
+        assertThat(updated.getStatus()).isEqualTo(MarginAccountStatus.BLOCKED);
+    }
+
+    @Test
+    void checkMaintenanceMargin_doesNotBlockAccountWhenInitialExceedsMaintenance() {
+        Client client = createClient("check.healthy@test.com");
+        Employee employee = createEmployee("check.healthy.emp@test.com", "chk.hlt.emp");
+        Currency rsd = createCurrency("RSD", "Serbian Dinar", "RSD", "RS");
+        Account account = createAccount("777777777777777902", client, employee, rsd,
+                new BigDecimal("10000.00"), new BigDecimal("10000.00"));
+        MarginAccount marginAccount = createMarginAccount(account, client,
+                MarginAccountStatus.ACTIVE, new BigDecimal("10000.0000"), new BigDecimal("5000.0000"));
+
+        marginAccountService.checkMaintenanceMargin();
+
+        entityManager.clear();
+        MarginAccount updated = marginAccountRepository.findById(marginAccount.getId()).orElseThrow();
+        assertThat(updated.getStatus()).isEqualTo(MarginAccountStatus.ACTIVE);
+    }
+
+    @Test
+    void checkMaintenanceMargin_blocksOnlyEligibleAccounts() {
+        Client clientA = createClient("check.eligible@test.com");
+        Client clientB = createClient("check.safe@test.com");
+        Employee employee = createEmployee("check.mixed.emp@test.com", "chk.mix.emp");
+        Currency rsd = createCurrency("RSD", "Serbian Dinar", "RSD", "RS");
+
+        Account accountA = createAccount("777777777777777903", clientA, employee, rsd,
+                new BigDecimal("10000.00"), new BigDecimal("10000.00"));
+        Account accountB = createAccount("777777777777777904", clientB, employee, rsd,
+                new BigDecimal("10000.00"), new BigDecimal("10000.00"));
+
+        MarginAccount marginAccountA = createMarginAccount(accountA, clientA,
+                MarginAccountStatus.ACTIVE, new BigDecimal("4000.0000"), new BigDecimal("5000.0000"));
+        MarginAccount marginAccountB = createMarginAccount(accountB, clientB,
+                MarginAccountStatus.ACTIVE, new BigDecimal("10000.0000"), new BigDecimal("5000.0000"));
+
+        marginAccountService.checkMaintenanceMargin();
+
+        entityManager.clear();
+        assertThat(marginAccountRepository.findById(marginAccountA.getId()).orElseThrow().getStatus())
+                .isEqualTo(MarginAccountStatus.BLOCKED);
+        assertThat(marginAccountRepository.findById(marginAccountB.getId()).orElseThrow().getStatus())
+                .isEqualTo(MarginAccountStatus.ACTIVE);
     }
 
     private MarginAccount createMarginAccount(Account account, Client client,
