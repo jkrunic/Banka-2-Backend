@@ -31,13 +31,8 @@ import rs.raf.banka2_bek.employee.model.Employee;
 import rs.raf.banka2_bek.employee.repository.ActivationTokenRepository;
 import rs.raf.banka2_bek.employee.repository.EmployeeRepository;
 
-import javax.sql.DataSource;
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -70,9 +65,6 @@ class ActuaryControllerIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private DataSource dataSource;
-
     private final RestTemplate restTemplate = createRestTemplate();
 
     private Employee agentMarko;
@@ -95,7 +87,7 @@ class ActuaryControllerIntegrationTest {
     }
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         // CHANGE: ostavljen clearContext iz jedne grane da se svaki test startuje "čisto"
         SecurityContextHolder.clearContext();
 
@@ -110,23 +102,12 @@ class ActuaryControllerIntegrationTest {
         SecurityContextHolder.clearContext();
     }
 
-    private void cleanDatabase() throws Exception {
-        try (Connection conn = dataSource.getConnection();
-             Statement stmt = conn.createStatement()) {
-            stmt.execute("SET REFERENTIAL_INTEGRITY FALSE");
-
-            ResultSet rs = stmt.executeQuery(
-                    "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC'");
-            List<String> tables = new ArrayList<>();
-            while (rs.next()) {
-                tables.add(rs.getString(1));
-            }
-            for (String table : tables) {
-                stmt.execute("TRUNCATE TABLE " + table);
-            }
-
-            stmt.execute("SET REFERENTIAL_INTEGRITY TRUE");
-        }
+    private void cleanDatabase() {
+        // CHANGE: zadržano centralizovano čišćenje baza iz oba pristupa
+        actuaryInfoRepository.deleteAll();
+        activationTokenRepository.deleteAll();
+        employeeRepository.deleteAll();
+        userRepository.deleteAll();
     }
 
     private void seedEmployees() {
