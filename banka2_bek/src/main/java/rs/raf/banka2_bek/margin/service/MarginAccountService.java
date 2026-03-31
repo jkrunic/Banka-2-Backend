@@ -167,17 +167,6 @@ public class MarginAccountService {
 
     /**
      * Uplata sredstava na margin racun.
-     * <p>
-     * TODO: Implementirati logiku:
-     *   1. Pronaci MarginAccount po ID-ju, baciti exception ako ne postoji
-     *   2. Dodati amount na initialMargin
-     *   3. Preracunati maintenanceMargin = initialMargin * MAINTENANCE_FACTOR
-     *   4. Ako je racun bio BLOCKED i sada initialMargin >= maintenanceMargin:
-     *      - Promeniti status na ACTIVE
-     *      - Logirati "Margin account {} unblocked after deposit of {}"
-     *   5. Sacuvati MarginAccount
-     *   6. Kreirati DEPOSIT MarginTransaction
-     *   7. Sacuvati MarginTransaction
      *
      * @param marginAccountId ID margin racuna
      * @param amount          iznos za uplatu
@@ -235,16 +224,6 @@ public class MarginAccountService {
 
     /**
      * Isplata sredstava sa margin racuna.
-     * <p>
-     * TODO: Implementirati logiku:
-     *   1. Pronaci MarginAccount po ID-ju, baciti exception ako ne postoji
-     *   2. Proveriti da je racun ACTIVE (blokirani racuni ne dozvoljavaju isplate)
-     *   3. Proveriti: initialMargin - amount >= maintenanceMargin
-     *      - Ako nije, baciti exception "Isplata bi smanjila marginu ispod maintenance nivoa"
-     *   4. Smanjiti initialMargin za amount
-     *   5. Sacuvati MarginAccount
-     *   6. Kreirati WITHDRAWAL MarginTransaction
-     *   7. Sacuvati MarginTransaction
      *
      * @param marginAccountId ID margin racuna
      * @param amount          iznos za isplatu
