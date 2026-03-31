@@ -8,13 +8,13 @@ import rs.raf.banka2_bek.tax.service.TaxService;
 
 /**
  * Scheduler za automatski obracun poreza.
- *
+ * <p>
  * Pokrece se prvog dana svakog meseca u ponoc (00:00:00).
  * Poziva TaxService.calculateTaxForAllUsers() koji obracunava porez
  * na osnovu svih DONE ordera za svakog korisnika.
- *
+ * <p>
  * Specifikacija: Celina 3 - Porez na kapitalnu dobit (15%)
- *
+ * <p>
  * TODO: Implementirati logiku:
  *   1. Logirati pocetak obracuna: "Pokrecem mesecni obracun poreza..."
  *   2. Pozvati taxService.calculateTaxForAllUsers()
@@ -35,21 +35,18 @@ public class TaxScheduler {
 
     /**
      * Mesecni obracun poreza — pokrece se 1. u mesecu u 00:00:00.
-     *
+     * <p>
      * Cron format: sekunda minut sat dan-u-mesecu mesec dan-u-nedelji
      * "0 0 0 1 * *" = 00:00:00 prvog dana svakog meseca
      */
     @Scheduled(cron = "0 0 0 1 * *")
     public void calculateMonthlyTax() {
-        // TODO: Implementirati prema uputstvima iznad
-        // log.info("Pokrecem mesecni obracun poreza...");
-        // try {
-        //     taxService.calculateTaxForAllUsers();
-        //     log.info("Mesecni obracun poreza zavrsen uspesno.");
-        // } catch (Exception e) {
-        //     log.error("Greska pri obracunu poreza: {}", e.getMessage(), e);
-        // }
-        // TODO: Poslati email notifikacije korisnicima
-        log.info("Monthly tax calculation started"); try { taxService.calculateTaxForAllUsers(); log.info("Monthly tax done"); } catch (Exception e) { log.error("Tax error: {}", e.getMessage()); }
+        log.info("Starting monthly tax calculation...");
+        try {
+            taxService.calculateTaxForAllUsers();
+            log.info("Monthly tax calculation completed successfully.");
+        } catch (Exception e) {
+            log.error("Error during tax calculation: {}", e.getMessage(), e);
+        }
     }
 }

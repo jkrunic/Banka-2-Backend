@@ -7,17 +7,19 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import rs.raf.banka2_bek.otp.repository.OtpVerificationRepository;
 
+import java.time.LocalDateTime;
+
 /**
  * Scheduler za ciscenje isteklih i upotrebljenih OTP zapisa.
- *
+ * <p>
  * Pokrece se svaki dan u 04:00 ujutru.
  * Brise:
- *   - Sve OTP zapise starije od 24 sata (istekli, nikad korisceni)
- *   - Sve koriscene (used=true) OTP zapise starije od 1 sata
- *
+ * - Sve OTP zapise starije od 24 sata (istekli, nikad korisceni)
+ * - Sve koriscene (used=true) OTP zapise starije od 1 sata
+ * <p>
  * Svrha: Sprecava nepotrebno gomilanje OTP zapisa u bazi
- *         i odrzava performanse tabele otp_verifications.
- *
+ * i odrzava performanse tabele otp_verifications.
+ * <p>
  * TODO: Implementirati logiku:
  *   1. Logirati pocetak ciscenja: "Pokrecem ciscenje OTP zapisa..."
  *   2. Obrisati sve zapise gde:
@@ -35,7 +37,7 @@ import rs.raf.banka2_bek.otp.repository.OtpVerificationRepository;
  *        int deleteUsedOlderThan(@Param("cutoff") LocalDateTime cutoff);
  *   5. Logirati: "Obrisano {} koriscenih OTP zapisa (>1h)."
  *   6. Logirati zavrsetak: "Ciscenje OTP zapisa zavrseno."
- *
+ * <p>
  * NAPOMENA: Potrebno je dodati gore navedene @Query metode u OtpVerificationRepository.
  */
 @Component
@@ -47,21 +49,23 @@ public class OtpCleanupScheduler {
 
     /**
      * Dnevno ciscenje OTP tabele — pokrece se u 04:00 ujutru.
-     *
+     * <p>
      * Cron format: sekunda minut sat dan-u-mesecu mesec dan-u-nedelji
      * "0 0 4 * * *" = 04:00:00 svakog dana
      */
     @Scheduled(cron = "0 0 4 * * *")
     @Transactional
     public void cleanupExpiredOtps() {
-        // TODO: Implementirati prema uputstvima iznad
-        // LocalDateTime expiredCutoff = LocalDateTime.now().minusHours(24);
-        // int deletedExpired = otpVerificationRepository.deleteAllOlderThan(expiredCutoff);
-        // log.info("Obrisano {} starih OTP zapisa (>24h).", deletedExpired);
-        //
-        // LocalDateTime usedCutoff = LocalDateTime.now().minusHours(1);
-        // int deletedUsed = otpVerificationRepository.deleteUsedOlderThan(usedCutoff);
-        // log.info("Obrisano {} koriscenih OTP zapisa (>1h).", deletedUsed);
-        log.info("OTP cleanup - TODO: implementirati");
+        log.info("Starting OTP cleanup...");
+
+        LocalDateTime expiredCutoff = LocalDateTime.now().minusHours(24);
+        int deletedExpired = otpVerificationRepository.deleteAllOlderThan(expiredCutoff);
+        log.info("Deleted {} expired OTP records (>24h).", deletedExpired);
+
+        LocalDateTime usedCutoff = LocalDateTime.now().minusHours(1);
+        int deletedUsed = otpVerificationRepository.deleteUsedOlderThan(usedCutoff);
+        log.info("Deleted {} used OTP records (>1h).", deletedUsed);
+
+        log.info("OTP cleanup completed.");
     }
 }
