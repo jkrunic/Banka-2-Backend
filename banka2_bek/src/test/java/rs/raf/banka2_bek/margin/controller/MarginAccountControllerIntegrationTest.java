@@ -785,6 +785,143 @@ class MarginAccountControllerIntegrationTest {
                 .isEqualTo(MarginAccountStatus.ACTIVE);
     }
 
+    // ── getTransactions() integration tests ───────────────────────────────────
+
+    @Test
+    void getTransactions_returnsOK_withTransactionsSortedNewestFirst() throws Exception {
+        Client client = createClient("tx.sorted@test.com");
+        User user = createAuthUser(client.getEmail(), "CLIENT");
+        Employee employee = createEmployee("tx.sorted.emp@test.com", "tx.srt.emp");
+        Currency rsd = createCurrency("RSD", "Serbian Dinar", "RSD", "RS");
+        Account account = createAccount("777777777777777910", client, employee, rsd,
+                new BigDecimal("10000.00"), new BigDecimal("10000.00"));
+        MarginAccount marginAccount = createMarginAccount(account, client,
+                MarginAccountStatus.ACTIVE, new BigDecimal("10000.0000"), new BigDecimal("5000.0000"));
+
+        createMarginTransaction(marginAccount, MarginTransactionType.DEPOSIT,
+                new BigDecimal("1000"), java.time.LocalDateTime.now().minusHours(1));
+        createMarginTransaction(marginAccount, MarginTransactionType.WITHDRAWAL,
+                new BigDecimal("500"), java.time.LocalDateTime.now());
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                url("/margin-accounts/" + marginAccount.getId() + "/transactions"),
+                org.springframework.http.HttpMethod.GET,
+                new HttpEntity<>(jsonHeaders(jwtService.generateAccessToken(user))),
+                String.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        JsonNode body = objectMapper.readTree(response.getBody());
+        assertThat(body.isArray()).isTrue();
+        assertThat(body.size()).isEqualTo(2);
+        assertThat(body.get(0).path("type").asText()).isEqualTo("WITHDRAWAL");
+    }
+
+    @Test
+    void getTransactions_returnsOK_withEmptyList() throws Exception {
+        Client client = createClient("tx.empty@test.com");
+        User user = createAuthUser(client.getEmail(), "CLIENT");
+        Employee employee = createEmployee("tx.empty.emp@test.com", "tx.emp.emp");
+        Currency rsd = createCurrency("RSD", "Serbian Dinar", "RSD", "RS");
+        Account account = createAccount("777777777777777911", client, employee, rsd,
+                new BigDecimal("10000.00"), new BigDecimal("10000.00"));
+        MarginAccount marginAccount = createMarginAccount(account, client,
+                MarginAccountStatus.ACTIVE, new BigDecimal("10000.0000"), new BigDecimal("5000.0000"));
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                url("/margin-accounts/" + marginAccount.getId() + "/transactions"),
+                org.springframework.http.HttpMethod.GET,
+                new HttpEntity<>(jsonHeaders(jwtService.generateAccessToken(user))),
+                String.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        JsonNode body = objectMapper.readTree(response.getBody());
+        assertThat(body.isArray()).isTrue();
+        assertThat(body.size()).isEqualTo(0);
+    }
+
+    @Test
+    void getTransactions_returnsForbidden_whenMissingJwt() {
+        ResponseEntity<String> response = restTemplate.exchange(
+                url("/margin-accounts/1/transactions"),
+                org.springframework.http.HttpMethod.GET,
+                new HttpEntity<>(jsonHeaders(null)),
+                String.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void getTransactions_returnsForbidden_forNonClientUser() {
+        User nonClient = createAuthUser("tx.nonclient@test.com", "EMPLOYEE");
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                url("/margin-accounts/1/transactions"),
+                org.springframework.http.HttpMethod.GET,
+                new HttpEntity<>(jsonHeaders(jwtService.generateAccessToken(nonClient))),
+                String.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void getTransactions_returnsNotFound_whenMarginAccountNotFound() {
+        Client client = createClient("tx.notfound@test.com");
+        User user = createAuthUser(client.getEmail(), "CLIENT");
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                url("/margin-accounts/99999/transactions"),
+                org.springframework.http.HttpMethod.GET,
+                new HttpEntity<>(jsonHeaders(jwtService.generateAccessToken(user))),
+                String.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).contains("99999");
+    }
+
+    @Test
+    void getTransactions_returnsForbidden_whenCallerIsNotOwner() {
+        Client owner = createClient("tx.owner@test.com");
+        Client attacker = createClient("tx.attacker@test.com");
+        User attackerUser = createAuthUser(attacker.getEmail(), "CLIENT");
+        Employee employee = createEmployee("tx.own.emp@test.com", "tx.own.emp");
+        Currency rsd = createCurrency("RSD", "Serbian Dinar", "RSD", "RS");
+        Account account = createAccount("777777777777777912", owner, employee, rsd,
+                new BigDecimal("10000.00"), new BigDecimal("10000.00"));
+        MarginAccount marginAccount = createMarginAccount(account, owner,
+                MarginAccountStatus.ACTIVE, new BigDecimal("10000.0000"), new BigDecimal("5000.0000"));
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                url("/margin-accounts/" + marginAccount.getId() + "/transactions"),
+                org.springframework.http.HttpMethod.GET,
+                new HttpEntity<>(jsonHeaders(jwtService.generateAccessToken(attackerUser))),
+                String.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).contains("Access denied.");
+    }
+
+    private rs.raf.banka2_bek.margin.model.MarginTransaction createMarginTransaction(
+            MarginAccount marginAccount,
+            MarginTransactionType type,
+            BigDecimal amount,
+            java.time.LocalDateTime createdAt) {
+        return marginTransactionRepository.save(
+                rs.raf.banka2_bek.margin.model.MarginTransaction.builder()
+                        .marginAccount(marginAccount)
+                        .type(type)
+                        .amount(amount)
+                        .createdAt(createdAt)
+                        .build());
+    }
+
     private MarginAccount createMarginAccount(Account account, Client client,
                                               MarginAccountStatus status,
                                               BigDecimal initialMargin,

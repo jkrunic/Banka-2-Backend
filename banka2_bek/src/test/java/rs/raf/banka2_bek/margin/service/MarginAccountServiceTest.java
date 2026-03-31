@@ -538,6 +538,110 @@ class MarginAccountServiceTest {
         verify(eventPublisher, times(3)).publishEvent(any(MarginAccountBlockedEvent.class));
     }
 
+    // ── getTransactions() tests ────────────────────────────────────────────────
+
+    @Test
+    void getTransactions_success_returnsTransactionsSortedNewestFirst() {
+        Authentication auth = authenticatedAs("client@test.com");
+        Client client = Client.builder().id(10L).email("client@test.com").build();
+        MarginAccount account = activeMarginAccount(10L, "10000", "5000", MarginAccountStatus.ACTIVE);
+
+        MarginTransaction tx1 = MarginTransaction.builder()
+                .id(1L)
+                .marginAccount(account)
+                .type(MarginTransactionType.DEPOSIT)
+                .amount(new BigDecimal("1000"))
+                .createdAt(LocalDateTime.now().minusHours(1))
+                .build();
+        MarginTransaction tx2 = MarginTransaction.builder()
+                .id(2L)
+                .marginAccount(account)
+                .type(MarginTransactionType.WITHDRAWAL)
+                .amount(new BigDecimal("500"))
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(clientRepository.findByEmail("client@test.com")).thenReturn(Optional.of(client));
+        when(marginAccountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(marginTransactionRepository.findByMarginAccountIdOrderByCreatedAtDesc(1L))
+                .thenReturn(List.of(tx2, tx1));
+
+        var result = marginAccountService.getTransactions(1L, auth);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getType()).isEqualTo("WITHDRAWAL");
+        assertThat(result.get(0).getAmount()).isEqualByComparingTo("500");
+    }
+
+    @Test
+    void getTransactions_success_returnsEmptyListWhenNoTransactions() {
+        Authentication auth = authenticatedAs("client@test.com");
+        Client client = Client.builder().id(10L).email("client@test.com").build();
+        MarginAccount account = activeMarginAccount(10L, "10000", "5000", MarginAccountStatus.ACTIVE);
+
+        when(clientRepository.findByEmail("client@test.com")).thenReturn(Optional.of(client));
+        when(marginAccountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(marginTransactionRepository.findByMarginAccountIdOrderByCreatedAtDesc(1L))
+                .thenReturn(List.of());
+
+        var result = marginAccountService.getTransactions(1L, auth);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getTransactions_throwsWhenAuthenticationIsNull() {
+        assertThatThrownBy(() -> marginAccountService.getTransactions(1L, null))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Not authenticated.");
+    }
+
+    @Test
+    void getTransactions_throwsWhenNotAuthenticated() {
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(false);
+
+        assertThatThrownBy(() -> marginAccountService.getTransactions(1L, auth))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Not authenticated.");
+    }
+
+    @Test
+    void getTransactions_throwsWhenClientNotFound() {
+        Authentication auth = authenticatedAs("unknown@test.com");
+        when(clientRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> marginAccountService.getTransactions(1L, auth))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Only clients can get the list of margin transactions.");
+    }
+
+    @Test
+    void getTransactions_throwsWhenMarginAccountNotFound() {
+        Authentication auth = authenticatedAs("client@test.com");
+        Client client = Client.builder().id(10L).email("client@test.com").build();
+        when(clientRepository.findByEmail("client@test.com")).thenReturn(Optional.of(client));
+        when(marginAccountRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> marginAccountService.getTransactions(99L, auth))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("99");
+    }
+
+    @Test
+    void getTransactions_throwsWhenCallerIsNotOwner() {
+        Authentication auth = authenticatedAs("attacker@test.com");
+        Client attacker = Client.builder().id(20L).email("attacker@test.com").build();
+        MarginAccount account = activeMarginAccount(10L, "10000", "5000", MarginAccountStatus.ACTIVE);
+
+        when(clientRepository.findByEmail("attacker@test.com")).thenReturn(Optional.of(attacker));
+        when(marginAccountRepository.findById(1L)).thenReturn(Optional.of(account));
+
+        assertThatThrownBy(() -> marginAccountService.getTransactions(1L, auth))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Access denied.");
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     private Account activeAccount(Long accountId, Long clientId, String available, String balance) {
