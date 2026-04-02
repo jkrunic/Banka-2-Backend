@@ -33,5 +33,8 @@ public class CreatePaymentRequestDto {
     private String description;
 
     private String recipientName;
+
+    @NotBlank(message = "Verifikacioni kod je obavezan")
+    private String otpCode;
 }
 

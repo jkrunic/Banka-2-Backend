@@ -282,6 +282,15 @@ public class LoanServiceImpl implements LoanService {
     }
 
     @Override
+    public List<LoanRequestResponseDto> getMyLoanRequests(String clientEmail) {
+        Client client = clientRepository.findByEmail(clientEmail).orElse(null);
+        if (client == null) return List.of();
+        return loanRequestRepository.findByClientIdOrderByCreatedAtDesc(client.getId()).stream()
+                .map(this::toRequestResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public LoanResponseDto earlyRepayment(Long loanId, String clientEmail) {
         Loan loan = loanRepository.findById(loanId)
@@ -301,7 +310,16 @@ public class LoanServiceImpl implements LoanService {
             throw new RuntimeException("Kredit ne pripada klijentu");
         }
 
-        BigDecimal payoffAmount = loan.getRemainingDebt();
+        // Izracunaj ukupan iznos za otplatu: preostali principal + neplacena kamata
+        List<LoanInstallment> allInstallments = installmentRepository.findByLoanIdOrderByExpectedDueDateAsc(loanId);
+        BigDecimal remainingPrincipal = loan.getRemainingDebt();
+        BigDecimal unpaidInterest = allInstallments.stream()
+                .filter(i -> !Boolean.TRUE.equals(i.getPaid()))
+                .map(i -> i.getInterestAmount() != null ? i.getInterestAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal payoffAmount = remainingPrincipal.add(unpaidInterest);
+
         if (payoffAmount.compareTo(BigDecimal.ZERO) <= 0) {
             loan.setRemainingDebt(BigDecimal.ZERO);
             loan.setStatus(LoanStatus.PAID_OFF);
@@ -317,7 +335,8 @@ public class LoanServiceImpl implements LoanService {
         }
 
         if (account.getAvailableBalance().compareTo(payoffAmount) < 0) {
-            throw new RuntimeException("Nedovoljno sredstava na racunu");
+            throw new RuntimeException("Nedovoljno sredstava na racunu (potrebno: " +
+                    payoffAmount + " = " + remainingPrincipal + " principal + " + unpaidInterest + " kamata)");
         }
 
         // Deduct from client
@@ -333,9 +352,8 @@ public class LoanServiceImpl implements LoanService {
         bankAccount.setAvailableBalance(bankAccount.getAvailableBalance().add(payoffAmount));
         accountRepository.save(bankAccount);
 
-        List<LoanInstallment> installments = installmentRepository.findByLoanIdOrderByExpectedDueDateAsc(loanId);
         LocalDate today = LocalDate.now();
-        for (LoanInstallment installment : installments) {
+        for (LoanInstallment installment : allInstallments) {
             if (!Boolean.TRUE.equals(installment.getPaid())) {
                 installment.setPaid(true);
                 installment.setActualDueDate(today);

@@ -2,20 +2,21 @@ package rs.raf.banka2_bek.transfers.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-import rs.raf.banka2_bek.account.model.Account;
-import rs.raf.banka2_bek.account.repository.AccountRepository;
 import rs.raf.banka2_bek.client.model.Client;
 import rs.raf.banka2_bek.client.repository.ClientRepository;
+import rs.raf.banka2_bek.otp.service.OtpService;
 import rs.raf.banka2_bek.transfers.dto.*;
 import rs.raf.banka2_bek.transfers.service.TransferService;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/transfers")
@@ -24,27 +25,47 @@ public class TransferController {
 
     private final TransferService transferService;
     private final ClientRepository clientRepository;
-    private final AccountRepository accountRepository;
+    private final OtpService otpService;
 
+    /**
+     * Internal transfer (same or different currency - auto-detected in service).
+     * OTP kod MORA biti validan - verifikuje se pre izvrsavanja transfera.
+     */
     @PostMapping("/internal")
-    public ResponseEntity<TransferResponseDto> internalTransfer(@Valid @RequestBody TransferInternalRequestDto request) {
-        // Auto-detect: if currencies differ, route to FX transfer
-        Account from = accountRepository.findByAccountNumber(request.getFromAccountNumber()).orElse(null);
-        Account to = accountRepository.findByAccountNumber(request.getToAccountNumber()).orElse(null);
+    public ResponseEntity<TransferResponseDto> internalTransfer(
+            @Valid @RequestBody TransferInternalRequestDto request,
+            Authentication auth) {
 
-        if (from != null && to != null && !from.getCurrency().getId().equals(to.getCurrency().getId())) {
-            TransferFxRequestDto fxRequest = new TransferFxRequestDto();
-            fxRequest.setFromAccountNumber(request.getFromAccountNumber());
-            fxRequest.setToAccountNumber(request.getToAccountNumber());
-            fxRequest.setAmount(request.getAmount());
-            return ResponseEntity.ok(transferService.fxTransfer(fxRequest));
+        // 1. OTP verifikacija
+        String email = getEmail(auth);
+        if (email == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        Map<String, Object> otpResult = otpService.verify(email, request.getOtpCode());
+        if (!Boolean.TRUE.equals(otpResult.get("verified"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
+        // 2. Servis radi auto-detect same vs FX i izvrsava sa pessimistic lock
         return ResponseEntity.ok(transferService.internalTransfer(request));
     }
 
+    /**
+     * FX transfer (explicit - different currencies).
+     * OTP kod MORA biti validan.
+     */
     @PostMapping("/fx")
-    public ResponseEntity<TransferResponseDto> fxTransfer(@Valid @RequestBody TransferFxRequestDto request) {
+    public ResponseEntity<TransferResponseDto> fxTransfer(
+            @Valid @RequestBody TransferFxRequestDto request,
+            Authentication auth) {
+
+        String email = getEmail(auth);
+        if (email == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        Map<String, Object> otpResult = otpService.verify(email, request.getOtpCode());
+        if (!Boolean.TRUE.equals(otpResult.get("verified"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         return ResponseEntity.ok(transferService.fxTransfer(request));
     }
 
@@ -64,16 +85,18 @@ public class TransferController {
         return ResponseEntity.ok(transferService.getTransferById(transferId));
     }
 
+    private String getEmail(Authentication auth) {
+        if (auth == null || !auth.isAuthenticated()) return null;
+        Object p = auth.getPrincipal();
+        if (p instanceof UserDetails ud) return ud.getUsername();
+        return p.toString();
+    }
+
     private Client getOptionalClient() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) return null;
-        Object principal = auth.getPrincipal();
-        String email;
-        if (principal instanceof UserDetails userDetails) {
-            email = userDetails.getUsername();
-        } else {
-            email = principal.toString();
-        }
+        String email = getEmail(auth);
+        if (email == null) return null;
         return clientRepository.findByEmail(email).orElse(null);
     }
 }

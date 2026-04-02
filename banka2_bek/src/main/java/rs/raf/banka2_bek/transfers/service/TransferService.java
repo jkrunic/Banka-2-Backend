@@ -91,8 +91,13 @@ public class TransferService {
         ensureAccess(actor, fromAccount);
         ensureAccess(actor, toAccount);
 
+        // Auto-detect FX: ako su razlicite valute, preusmeri na FX transfer
         if (!fromAccount.getCurrency().getId().equals(toAccount.getCurrency().getId())) {
-            throw new RuntimeException("Accounts must have the same currency");
+            TransferFxRequestDto fxRequest = new TransferFxRequestDto();
+            fxRequest.setFromAccountNumber(request.getFromAccountNumber());
+            fxRequest.setToAccountNumber(request.getToAccountNumber());
+            fxRequest.setAmount(request.getAmount());
+            return fxTransfer(fxRequest);
         }
 
         if (fromAccount.getAvailableBalance().compareTo(request.getAmount()) < 0) {
@@ -155,8 +160,15 @@ public class TransferService {
             throw new RuntimeException("Accounts must have different currencies");
         }
 
-        if (fromAccount.getAvailableBalance().compareTo(request.getAmount()) < 0) {
-            throw new RuntimeException("Insufficient funds");
+        // Calculate commission: 0.5% of transfer amount
+        BigDecimal commissionRate = new BigDecimal("0.005");
+        BigDecimal commissionAmount = request.getAmount().multiply(commissionRate).setScale(2, java.math.RoundingMode.HALF_UP);
+        BigDecimal totalDebit = request.getAmount().add(commissionAmount);
+
+        // Check client can pay amount + commission
+        if (fromAccount.getAvailableBalance().compareTo(totalDebit) < 0) {
+            throw new RuntimeException("Nedovoljno sredstava. Potrebno: " + totalDebit + " " +
+                    fromAccount.getCurrency().getCode() + " (iznos + provizija 0.5%)");
         }
 
         // Lock bank accounts for the two currencies involved
@@ -168,7 +180,7 @@ public class TransferService {
         Account bankToAccount = accountRepository.findBankAccountForUpdateByCurrency(bankRegistrationNumber, toCurrencyCode)
                 .orElseThrow(() -> new RuntimeException("Bank account for " + toCurrencyCode + " not found"));
 
-        // Calculate exchange (includes 2% markup + 0.5% commission = bank's profit)
+        // Calculate exchange (includes 2% markup in rate)
         CalculateExchangeResponseDto exchangeResult = exchangeService.calculateCross(
                 request.getAmount().doubleValue(),
                 fromCurrencyCode,
@@ -183,13 +195,13 @@ public class TransferService {
             throw new RuntimeException("Bank does not have enough " + toCurrencyCode + " reserves");
         }
 
-        // 1. Client pays source currency
-        fromAccount.setBalance(fromAccount.getBalance().subtract(request.getAmount()));
-        fromAccount.setAvailableBalance(fromAccount.getAvailableBalance().subtract(request.getAmount()));
+        // 1. Client pays source currency + commission
+        fromAccount.setBalance(fromAccount.getBalance().subtract(totalDebit));
+        fromAccount.setAvailableBalance(fromAccount.getAvailableBalance().subtract(totalDebit));
 
-        // 2. Bank receives source currency
-        bankFromAccount.setBalance(bankFromAccount.getBalance().add(request.getAmount()));
-        bankFromAccount.setAvailableBalance(bankFromAccount.getAvailableBalance().add(request.getAmount()));
+        // 2. Bank receives source currency + commission (amount + commission goes to bank)
+        bankFromAccount.setBalance(bankFromAccount.getBalance().add(totalDebit));
+        bankFromAccount.setAvailableBalance(bankFromAccount.getAvailableBalance().add(totalDebit));
 
         // 3. Bank pays target currency
         bankToAccount.setBalance(bankToAccount.getBalance().subtract(toAmount));
@@ -213,7 +225,7 @@ public class TransferService {
         transfer.setFromCurrency(fromAccount.getCurrency());
         transfer.setToCurrency(toAccount.getCurrency());
         transfer.setExchangeRate(exchangeRate);
-        transfer.setCommission(BigDecimal.valueOf(0.005));
+        transfer.setCommission(commissionAmount);
         transfer.setTransferType(TransferType.EXCHANGE);
         transfer.setStatus(PaymentStatus.COMPLETED);
         transfer.setCreatedBy(actor);

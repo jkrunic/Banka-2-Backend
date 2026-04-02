@@ -27,4 +27,6 @@ public interface LoanService {
     List<InstallmentResponseDto> getInstallments(Long loanId);
 
     LoanResponseDto earlyRepayment(Long loanId, String clientEmail);
+
+    List<LoanRequestResponseDto> getMyLoanRequests(String clientEmail);
 }

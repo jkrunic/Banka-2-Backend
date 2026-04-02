@@ -33,6 +33,7 @@ import rs.raf.banka2_bek.transaction.dto.TransactionType;
 import rs.raf.banka2_bek.transaction.service.TransactionService;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -49,6 +50,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final MailNotificationService mailNotificationService;
     private final String bankRegistrationNumber;
     private static final int ORDER_NUMBER_MAX_RETRIES = 5;
+    private static final BigDecimal COMMISSION_RATE = new BigDecimal("0.005"); // 0.5%
 
     public PaymentServiceImpl(PaymentRepository paymentRepository,
                               PaymentAccountRepository paymentAccountRepository,
@@ -70,101 +72,106 @@ public class PaymentServiceImpl implements PaymentService {
         this.bankRegistrationNumber = bankRegistrationNumber;
     }
 
+    /**
+     * PAYMENT FLOW (od nule):
+     *
+     * 1. Validacija (racuni, vlasnistvo, status)
+     * 2. Izracunaj proviziju (0.5% za cross-currency, 0 za same-currency)
+     * 3. Proveri da klijent ima AMOUNT + PROVIZIJA na racunu
+     * 4. Proveri dnevni/mesecni limit
+     * 5. Za cross-currency: konvertuj preko banke
+     * 6. Skini AMOUNT + PROVIZIJA od klijenta (jedan poziv, jedan iznos)
+     * 7. Dodaj AMOUNT primaocu
+     * 8. Dodaj AMOUNT + PROVIZIJA banci (za cross-currency) ili samo PROVIZIJU (za same-currency)
+     * 9. Sacuvaj payment, kreiraj transakcije, posalji email
+     */
     @Override
     @Transactional
     public PaymentResponseDto createPayment(CreatePaymentRequestDto request) {
+        // ===== 1. VALIDACIJA =====
         Account fromAccount = paymentAccountRepository.findForUpdateByAccountNumber(request.getFromAccount())
-                .orElseThrow(() -> new IllegalArgumentException("Source account does not exist."));
+                .orElseThrow(() -> new IllegalArgumentException("Racun posiljaoca ne postoji."));
 
         Account toAccount = paymentAccountRepository.findForUpdateByAccountNumber(request.getToAccount())
-                .orElseThrow(() -> new IllegalArgumentException("Destination account does not exist."));
+                .orElseThrow(() -> new IllegalArgumentException("Racun primaoca ne postoji."));
 
-        if (fromAccount.getStatus() != AccountStatus.ACTIVE) {
-            throw new IllegalArgumentException("Source account is not active.");
-        }
-
-        if (toAccount.getStatus() != AccountStatus.ACTIVE) {
-            throw new IllegalArgumentException("Destination account is not active.");
-        }
-
-        if (fromAccount.getId().equals(toAccount.getId())) {
-            throw new IllegalArgumentException("Source and destination accounts must be different.");
-        }
+        if (fromAccount.getStatus() != AccountStatus.ACTIVE)
+            throw new IllegalArgumentException("Racun posiljaoca nije aktivan.");
+        if (toAccount.getStatus() != AccountStatus.ACTIVE)
+            throw new IllegalArgumentException("Racun primaoca nije aktivan.");
+        if (fromAccount.getId().equals(toAccount.getId()))
+            throw new IllegalArgumentException("Racuni moraju biti razliciti.");
 
         Client client = getAuthenticatedClient();
+        if (fromAccount.getClient() == null || !fromAccount.getClient().getId().equals(client.getId()))
+            throw new IllegalArgumentException("Racun ne pripada klijentu.");
 
-        if (fromAccount.getClient() == null || !fromAccount.getClient().getId().equals(client.getId())) {
-            throw new IllegalArgumentException("Source account does not belong to the authenticated client.");
-        }
-
+        // ===== 2. PROVIZIJA =====
         BigDecimal amount = request.getAmount();
-
-        if (fromAccount.getAvailableBalance() == null || fromAccount.getAvailableBalance().compareTo(amount) < 0) {
-            throw new IllegalArgumentException("Nedovoljno sredstava na racunu");
-        }
-
-        if (fromAccount.getDailyLimit() != null
-                && fromAccount.getDailyLimit().compareTo(BigDecimal.ZERO) > 0
-                && fromAccount.getDailySpending().add(amount).compareTo(fromAccount.getDailyLimit()) > 0) {
-            throw new IllegalArgumentException("Prekoracen dnevni limit za ovaj racun");
-        }
-
-        if (fromAccount.getMonthlyLimit() != null
-                && fromAccount.getMonthlyLimit().compareTo(BigDecimal.ZERO) > 0
-                && fromAccount.getMonthlySpending().add(amount).compareTo(fromAccount.getMonthlyLimit()) > 0) {
-            throw new IllegalArgumentException("Prekoracen mesecni limit za ovaj racun");
-        }
-
-        BigDecimal transactionFee = BigDecimal.ZERO;
-        BigDecimal creditedAmount = amount;
         boolean isCrossCurrency = !fromAccount.getCurrency().getId().equals(toAccount.getCurrency().getId());
-        String paymentCode = request.getPaymentCode().getCode();
+        BigDecimal fee = isCrossCurrency
+                ? amount.multiply(COMMISSION_RATE).setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+        BigDecimal totalFromClient = amount.add(fee); // ovo se skida od klijenta
 
+        // ===== 3. PROVERA SREDSTAVA =====
+        if (fromAccount.getAvailableBalance().compareTo(totalFromClient) < 0)
+            throw new IllegalArgumentException("Nedovoljno sredstava na racunu. Potrebno: " + totalFromClient);
+
+        // ===== 4. LIMITI =====
+        if (fromAccount.getDailyLimit() != null && fromAccount.getDailyLimit().compareTo(BigDecimal.ZERO) > 0
+                && fromAccount.getDailySpending().add(amount).compareTo(fromAccount.getDailyLimit()) > 0)
+            throw new IllegalArgumentException("Prekoracen dnevni limit.");
+        if (fromAccount.getMonthlyLimit() != null && fromAccount.getMonthlyLimit().compareTo(BigDecimal.ZERO) > 0
+                && fromAccount.getMonthlySpending().add(amount).compareTo(fromAccount.getMonthlyLimit()) > 0)
+            throw new IllegalArgumentException("Prekoracen mesecni limit.");
+
+        // ===== 5. CROSS-CURRENCY KONVERZIJA =====
+        BigDecimal creditedAmount = amount; // koliko primalac dobija
         if (isCrossCurrency) {
-            // Cross-currency payment: route through bank accounts
-            String fromCurrencyCode = fromAccount.getCurrency().getCode();
-            String toCurrencyCode = toAccount.getCurrency().getCode();
+            String fromCurr = fromAccount.getCurrency().getCode();
+            String toCurr = toAccount.getCurrency().getCode();
 
-            Account bankFromAccount = accountRepository.findBankAccountForUpdateByCurrency(bankRegistrationNumber, fromCurrencyCode)
-                    .orElseThrow(() -> new RuntimeException("Bank account for " + fromCurrencyCode + " not found"));
-            Account bankToAccount = accountRepository.findBankAccountForUpdateByCurrency(bankRegistrationNumber, toCurrencyCode)
-                    .orElseThrow(() -> new RuntimeException("Bank account for " + toCurrencyCode + " not found"));
+            CalculateExchangeResponseDto fx = exchangeService.calculateCross(
+                    amount.doubleValue(), fromCurr, toCurr);
+            creditedAmount = BigDecimal.valueOf(fx.getConvertedAmount());
 
-            CalculateExchangeResponseDto exchangeResult = exchangeService.calculateCross(
-                    amount.doubleValue(), fromCurrencyCode, toCurrencyCode);
+            // Bankin racun za target valutu mora imati dovoljno
+            Account bankToAccount = accountRepository.findBankAccountForUpdateByCurrency(bankRegistrationNumber, toCurr)
+                    .orElseThrow(() -> new RuntimeException("Banka nema racun za " + toCurr));
+            if (bankToAccount.getAvailableBalance().compareTo(creditedAmount) < 0)
+                throw new RuntimeException("Banka nema dovoljno " + toCurr);
 
-            creditedAmount = BigDecimal.valueOf(exchangeResult.getConvertedAmount());
-            transactionFee = amount.multiply(new BigDecimal("0.005"));
-
-            if (bankToAccount.getAvailableBalance().compareTo(creditedAmount) < 0) {
-                throw new RuntimeException("Bank does not have enough " + toCurrencyCode + " reserves");
-            }
-
-            // Bank receives source currency
-            bankFromAccount.setBalance(bankFromAccount.getBalance().add(amount));
-            bankFromAccount.setAvailableBalance(bankFromAccount.getAvailableBalance().add(amount));
-
-            // Bank pays target currency
+            // Banka placa target valutu primaocu
             bankToAccount.setBalance(bankToAccount.getBalance().subtract(creditedAmount));
             bankToAccount.setAvailableBalance(bankToAccount.getAvailableBalance().subtract(creditedAmount));
-
-            accountRepository.save(bankFromAccount);
             accountRepository.save(bankToAccount);
+
+            // Banka prima source valutu (amount + provizija) od klijenta
+            Account bankFromAccount = accountRepository.findBankAccountForUpdateByCurrency(bankRegistrationNumber, fromCurr)
+                    .orElseThrow(() -> new RuntimeException("Banka nema racun za " + fromCurr));
+            bankFromAccount.setBalance(bankFromAccount.getBalance().add(totalFromClient));
+            bankFromAccount.setAvailableBalance(bankFromAccount.getAvailableBalance().add(totalFromClient));
+            accountRepository.save(bankFromAccount);
         }
 
-        fromAccount.setBalance(fromAccount.getBalance().subtract(amount.add(transactionFee)));
-        fromAccount.setAvailableBalance(fromAccount.getAvailableBalance().subtract(amount.add(transactionFee)));
+        // ===== 6. SKINI OD KLIJENTA (amount + fee, JEDNOM) =====
+        fromAccount.setBalance(fromAccount.getBalance().subtract(totalFromClient));
+        fromAccount.setAvailableBalance(fromAccount.getAvailableBalance().subtract(totalFromClient));
         fromAccount.setDailySpending(fromAccount.getDailySpending().add(amount));
         fromAccount.setMonthlySpending(fromAccount.getMonthlySpending().add(amount));
 
+        // ===== 7. DODAJ PRIMAOCU =====
         toAccount.setBalance(toAccount.getBalance().add(creditedAmount));
         toAccount.setAvailableBalance(toAccount.getAvailableBalance().add(creditedAmount));
 
-        Payment base = Payment.builder()
+        // ===== 8. SACUVAJ PAYMENT =====
+        String paymentCode = request.getPaymentCode().getCode();
+        Payment payment = Payment.builder()
                 .fromAccount(fromAccount)
                 .toAccountNumber(request.getToAccount())
                 .amount(amount)
-                .fee(transactionFee)
+                .fee(fee)
                 .currency(fromAccount.getCurrency())
                 .recipientName(request.getRecipientName())
                 .paymentCode(paymentCode)
@@ -175,75 +182,51 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
 
         Payment savedPayment = null;
-
-        //Pokusava da generise jedinstven payment broj pomocu uk constrainta
         for (int attempt = 1; attempt <= ORDER_NUMBER_MAX_RETRIES; attempt++) {
             try {
-                base.setOrderNumber(generateOrderNumber());
-                savedPayment = paymentRepository.saveAndFlush(base); // force DB unique check now
+                payment.setOrderNumber(generateOrderNumber());
+                savedPayment = paymentRepository.saveAndFlush(payment);
                 break;
             } catch (DataIntegrityViolationException ex) {
                 String msg = ex.getMostSpecificCause().getMessage();
                 if (msg == null) throw ex;
-
                 String lower = msg.toLowerCase();
                 if (!(lower.contains("order_number") || lower.contains("uk") || lower.contains("unique")))
                     throw ex;
             }
         }
+        if (savedPayment == null)
+            throw new IllegalStateException("Generisanje broja placanja nije uspelo.");
 
-        if (savedPayment == null) {
-            throw new IllegalStateException("Failed to generate unique order number.");
-        }
-
+        // ===== 9. TRANSAKCIJE + EMAIL =====
         transactionService.recordPaymentSettlement(savedPayment, toAccount, client, creditedAmount);
 
         try {
             mailNotificationService.sendPaymentConfirmationMail(
-                    client.getEmail(),
-                    savedPayment.getAmount(),
-                    savedPayment.getCurrency() != null ? savedPayment.getCurrency().getCode() : null,
-                    savedPayment.getFromAccount() != null ? savedPayment.getFromAccount().getAccountNumber() : null,
-                    savedPayment.getToAccountNumber(),
+                    client.getEmail(), amount,
+                    fromAccount.getCurrency() != null ? fromAccount.getCurrency().getCode() : null,
+                    fromAccount.getAccountNumber(), request.getToAccount(),
                     savedPayment.getCreatedAt() != null ? savedPayment.getCreatedAt().toLocalDate() : java.time.LocalDate.now(),
-                    savedPayment.getStatus().name());
-        } catch (Exception e) {
-            // Email failure must not roll back the payment transaction
-        }
+                    "COMPLETED");
+        } catch (Exception ignored) {}
 
         return toResponse(savedPayment, client.getId());
     }
 
     @Override
-    public Page<PaymentListItemDto> getPayments(
-            Pageable pageable,
-            LocalDateTime fromDate,
-            LocalDateTime toDate,
-            String accountNumber,
-            BigDecimal minAmount,
-            BigDecimal maxAmount,
-            PaymentStatus status
-    ) {
+    public Page<PaymentListItemDto> getPayments(Pageable pageable, LocalDateTime fromDate, LocalDateTime toDate,
+            String accountNumber, BigDecimal minAmount, BigDecimal maxAmount, PaymentStatus status) {
         Client client = getOptionalClient();
         if (client == null) return Page.empty(pageable);
-        return paymentRepository.findByUserAccountsWithFilters(
-                        client.getId(),
-                        fromDate,
-                        toDate,
-                        accountNumber,
-                        minAmount,
-                        maxAmount,
-                        status,
-                        pageable
-                )
-                .map(payment -> toListItem(payment, client.getId()));
+        return paymentRepository.findByUserAccountsWithFilters(client.getId(), fromDate, toDate, accountNumber, minAmount, maxAmount, status, pageable)
+                .map(p -> toListItem(p, client.getId()));
     }
 
     @Override
     public PaymentResponseDto getPaymentById(Long paymentId) {
         Client client = getAuthenticatedClient();
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new IllegalArgumentException("Payment with ID " + paymentId + " not found."));
+                .orElseThrow(() -> new IllegalArgumentException("Placanje nije pronadjeno."));
         return toResponse(payment, client.getId());
     }
 
@@ -251,102 +234,67 @@ public class PaymentServiceImpl implements PaymentService {
     public byte[] getPaymentReceipt(Long paymentId) {
         Long clientId = getAuthenticatedClient().getId();
         TransactionResponseDto transaction = transactionService.getReceiptTransaction(paymentId, clientId);
-
         return paymentReceiptPdfGenerator.generate(transaction);
     }
 
     @Override
-    public Page<TransactionListItemDto> getPaymentHistory(
-            Pageable pageable,
-            LocalDateTime fromDate,
-            LocalDateTime toDate,
-            BigDecimal minAmount,
-            BigDecimal maxAmount,
-            TransactionType type
-    ) {
+    public Page<TransactionListItemDto> getPaymentHistory(Pageable pageable, LocalDateTime fromDate, LocalDateTime toDate,
+            BigDecimal minAmount, BigDecimal maxAmount, TransactionType type) {
         return transactionService.getTransactions(pageable, fromDate, toDate, minAmount, maxAmount, type);
     }
 
-    private PaymentResponseDto toResponse(Payment payment, Long authenticatedClientId) {
+    // ===== MAPPERS =====
+
+    private PaymentResponseDto toResponse(Payment p, Long clientId) {
         return PaymentResponseDto.builder()
-                .id(payment.getId())
-                .orderNumber(payment.getOrderNumber())
-                .fromAccount(payment.getFromAccount() != null ? payment.getFromAccount().getAccountNumber() : null)
-                .toAccount(payment.getToAccountNumber())
-                .amount(payment.getAmount())
-                .fee(payment.getFee())
-                .currency(payment.getCurrency() != null ? payment.getCurrency().getCode() : null)
-                .paymentCode(payment.getPaymentCode())
-                .referenceNumber(payment.getReferenceNumber())
-                .description(payment.getPurpose())
-                .recipientName(payment.getRecipientName())
-                .direction(resolveDirection(payment, authenticatedClientId))
-                .status(payment.getStatus())
-                .createdAt(payment.getCreatedAt())
+                .id(p.getId()).orderNumber(p.getOrderNumber())
+                .fromAccount(p.getFromAccount() != null ? p.getFromAccount().getAccountNumber() : null)
+                .toAccount(p.getToAccountNumber()).amount(p.getAmount()).fee(p.getFee())
+                .currency(p.getCurrency() != null ? p.getCurrency().getCode() : null)
+                .paymentCode(p.getPaymentCode()).referenceNumber(p.getReferenceNumber())
+                .description(p.getPurpose()).recipientName(p.getRecipientName())
+                .direction(resolveDirection(p, clientId)).status(p.getStatus()).createdAt(p.getCreatedAt())
                 .build();
     }
 
-    private PaymentListItemDto toListItem(Payment payment, Long authenticatedClientId) {
-        PaymentDirection direction = resolveDirection(payment, authenticatedClientId);
-
+    private PaymentListItemDto toListItem(Payment p, Long clientId) {
         return PaymentListItemDto.builder()
-                .id(payment.getId())
-                .orderNumber(payment.getOrderNumber())
-                .fromAccount(payment.getFromAccount() != null ? payment.getFromAccount().getAccountNumber() : null)
-                .toAccount(payment.getToAccountNumber())
-                .amount(payment.getAmount())
-                .fee(payment.getFee())
-                .currency(payment.getCurrency() != null ? payment.getCurrency().getCode() : null)
-                .recipientName(payment.getRecipientName())
-                .description(payment.getPurpose())
-                .direction(direction)
-                .status(payment.getStatus())
-                .createdAt(payment.getCreatedAt())
+                .id(p.getId()).orderNumber(p.getOrderNumber())
+                .fromAccount(p.getFromAccount() != null ? p.getFromAccount().getAccountNumber() : null)
+                .toAccount(p.getToAccountNumber()).amount(p.getAmount()).fee(p.getFee())
+                .currency(p.getCurrency() != null ? p.getCurrency().getCode() : null)
+                .recipientName(p.getRecipientName()).description(p.getPurpose())
+                .direction(resolveDirection(p, clientId)).status(p.getStatus()).createdAt(p.getCreatedAt())
                 .build();
     }
 
-    private PaymentDirection resolveDirection(Payment payment, Long authenticatedClientId) {
-        if (payment.getFromAccount() == null || payment.getFromAccount().getClient() == null) {
-            return PaymentDirection.INCOMING;
-        }
-
-        return payment.getFromAccount().getClient().getId().equals(authenticatedClientId)
-                ? PaymentDirection.OUTGOING
-                : PaymentDirection.INCOMING;
+    private PaymentDirection resolveDirection(Payment p, Long clientId) {
+        if (p.getFromAccount() == null || p.getFromAccount().getClient() == null) return PaymentDirection.INCOMING;
+        return p.getFromAccount().getClient().getId().equals(clientId) ? PaymentDirection.OUTGOING : PaymentDirection.INCOMING;
     }
+
+    // ===== AUTH HELPERS =====
 
     private String getAuthenticatedUsername() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new IllegalArgumentException("Authenticated user is required.");
-        }
-
-        Object principal = authentication.getPrincipal();
-
-        if (principal instanceof UserDetails userDetails) {
-            return userDetails.getUsername();
-        }
-
-        throw new IllegalArgumentException("Authenticated user is required.");
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) throw new IllegalArgumentException("Niste prijavljeni.");
+        Object principal = auth.getPrincipal();
+        if (principal instanceof UserDetails ud) return ud.getUsername();
+        throw new IllegalArgumentException("Niste prijavljeni.");
     }
 
     private Client getAuthenticatedClient() {
-        Client client = getOptionalClient();
-        if (client == null) throw new IllegalArgumentException("Authenticated client does not exist.");
-        return client;
+        Client c = getOptionalClient();
+        if (c == null) throw new IllegalArgumentException("Klijent nije pronadjen.");
+        return c;
     }
 
     private Client getOptionalClient() {
-        try {
-            String username = getAuthenticatedUsername();
-            return clientRepository.findByEmail(username).orElse(null);
-        } catch (Exception e) {
-            return null;
-        }
+        try { return clientRepository.findByEmail(getAuthenticatedUsername()).orElse(null); }
+        catch (Exception e) { return null; }
     }
 
     private String generateOrderNumber() {
         return "PAY-" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
     }
 }
-

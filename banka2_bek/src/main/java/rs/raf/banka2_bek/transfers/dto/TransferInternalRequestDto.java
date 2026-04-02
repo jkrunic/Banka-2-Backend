@@ -37,4 +37,10 @@ public class TransferInternalRequestDto {
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
+
+    @NotBlank(message = "Verifikacioni kod je obavezan")
+    private String otpCode;
+
+    public String getOtpCode() { return otpCode; }
+    public void setOtpCode(String otpCode) { this.otpCode = otpCode; }
 }

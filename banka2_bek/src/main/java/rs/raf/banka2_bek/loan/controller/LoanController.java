@@ -55,6 +55,11 @@ public class LoanController {
         return ResponseEntity.ok(loanService.earlyRepayment(id, getEmail()));
     }
 
+    @GetMapping("/requests/my")
+    public ResponseEntity<List<LoanRequestResponseDto>> getMyLoanRequests() {
+        return ResponseEntity.ok(loanService.getMyLoanRequests(getEmail()));
+    }
+
     // --- Employee/Admin endpoints ---
 
     @GetMapping("/requests")

@@ -48,7 +48,31 @@ public class PaymentController {
             @ApiResponse(responseCode = "404", description = "Business validation failed (e.g. account not found)")
     })
     @PostMapping
-    public ResponseEntity<PaymentResponseDto> createPayment(@Valid @RequestBody CreatePaymentRequestDto request) {
+    public ResponseEntity<PaymentResponseDto> createPayment(
+            @Valid @RequestBody CreatePaymentRequestDto request,
+            org.springframework.security.core.Authentication auth) {
+        String email = auth != null ? auth.getName() : null;
+        if (email == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        // OTP verifikacija: kod mora biti verifikovan PRE kreiranja placanja
+        // Frontend flow: request-otp -> verify (sa kodom) -> createPayment
+        // verify markira OTP kao "verified" ali ne "used"
+        // createPayment proverava da postoji verified OTP i markira ga kao used
+        String otpCode = request.getOtpCode();
+        if (otpCode == null || otpCode.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Verifikuj i potroši OTP kod atomično
+        java.util.Map<String, Object> verifyResult = otpService.verify(email, otpCode);
+        boolean verified = Boolean.TRUE.equals(verifyResult.get("verified"));
+        if (!verified) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(null);
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.createPayment(request));
     }
 
