@@ -41,7 +41,9 @@ import rs.raf.banka2_bek.employee.repository.ActivationTokenRepository;
 import rs.raf.banka2_bek.employee.repository.EmployeeRepository;
 import rs.raf.banka2_bek.exchange.ExchangeService;
 import rs.raf.banka2_bek.notification.service.MailNotificationService;
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
+import javax.sql.DataSource;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -74,6 +76,7 @@ class CardControllerIntegrationTest {
     @Autowired private LoanRequestRepository loanRequestRepository;
     @Autowired private TransferRepository transferRepository;
     @Autowired private JdbcTemplate jdbcTemplate;
+    @Autowired private DataSource dataSource;
     @Autowired private EntityManager entityManager;
     @Autowired private ObjectMapper objectMapper;
 
@@ -87,20 +90,7 @@ class CardControllerIntegrationTest {
             @Override public boolean hasError(ClientHttpResponse response) throws IOException { return false; }
         });
 
-        loanInstallmentRepository.deleteAll();
-        loanRepository.deleteAll();
-        loanRequestRepository.deleteAll();
-        transferRepository.deleteAll();
-        cardRequestRepository.deleteAll();
-        cardRepository.deleteAll();
-        accountRepository.deleteAll();
-        passwordResetTokenRepository.deleteAll();
-        activationTokenRepository.deleteAll();
-        employeeRepository.deleteAll();
-        userRepository.deleteAll();
-        clientRepository.deleteAll();
-        companyRepository.deleteAll();
-        jdbcTemplate.update("delete from currencies");
+        IntegrationTestCleanup.truncateAllTables(dataSource);
     }
 
     // ===== Create card tests =====

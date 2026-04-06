@@ -40,14 +40,12 @@ import rs.raf.banka2_bek.margin.model.MarginAccount;
 import rs.raf.banka2_bek.margin.model.MarginAccountStatus;
 import rs.raf.banka2_bek.margin.model.MarginTransactionType;
 
+import rs.raf.banka2_bek.IntegrationTestCleanup;
+
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -108,7 +106,7 @@ class MarginAccountControllerIntegrationTest {
     private DataSource dataSource;
 
     @BeforeEach
-    void cleanDatabase() throws Exception {
+    void cleanDatabase() {
         restTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
             @Override
             public boolean hasError(ClientHttpResponse response) throws IOException {
@@ -116,22 +114,7 @@ class MarginAccountControllerIntegrationTest {
             }
         });
 
-        try (Connection conn = dataSource.getConnection();
-             Statement stmt = conn.createStatement()) {
-            stmt.execute("SET REFERENTIAL_INTEGRITY FALSE");
-
-            ResultSet rs = stmt.executeQuery(
-                    "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC'");
-            List<String> tables = new ArrayList<>();
-            while (rs.next()) {
-                tables.add(rs.getString(1));
-            }
-            for (String table : tables) {
-                stmt.execute("TRUNCATE TABLE " + table);
-            }
-
-            stmt.execute("SET REFERENTIAL_INTEGRITY TRUE");
-        }
+        IntegrationTestCleanup.truncateAllTables(dataSource);
     }
 
     @Test

@@ -21,7 +21,9 @@ import rs.raf.banka2_bek.auth.repository.UserRepository;
 import rs.raf.banka2_bek.auth.service.JwtService;
 import rs.raf.banka2_bek.employee.repository.EmployeeRepository;
 import rs.raf.banka2_bek.employee.repository.ActivationTokenRepository;
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
+import javax.sql.DataSource;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -63,6 +65,9 @@ class EmployeeControllerIntegrationTest {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private DataSource dataSource;
+
     @BeforeEach
     void cleanDatabase() {
         restTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
@@ -71,10 +76,7 @@ class EmployeeControllerIntegrationTest {
                 return false;
             }
         });
-        passwordResetTokenRepository.deleteAll();
-        activationTokenRepository.deleteAll();
-        employeeRepository.deleteAll();
-        userRepository.deleteAll();
+        IntegrationTestCleanup.truncateAllTables(dataSource);
     }
 
     private String url(String path) {

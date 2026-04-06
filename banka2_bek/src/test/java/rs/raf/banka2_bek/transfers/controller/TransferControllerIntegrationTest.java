@@ -41,7 +41,9 @@ import rs.raf.banka2_bek.otp.service.OtpService;
 import rs.raf.banka2_bek.card.repository.CardRepository;
 import rs.raf.banka2_bek.card.repository.CardRequestRepository;
 import rs.raf.banka2_bek.transfers.repository.TransferRepository;
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
+import javax.sql.DataSource;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -77,6 +79,7 @@ class TransferControllerIntegrationTest {
     @Autowired private CardRequestRepository cardRequestRepository;
     @Autowired private CompanyRepository companyRepository;
     @Autowired private JdbcTemplate jdbcTemplate;
+    @Autowired private DataSource dataSource;
     @Autowired private EntityManager entityManager;
     @Autowired private ObjectMapper objectMapper;
 
@@ -94,20 +97,7 @@ class TransferControllerIntegrationTest {
             @Override public boolean hasError(ClientHttpResponse response) throws IOException { return false; }
         });
 
-        loanInstallmentRepository.deleteAll();
-        loanRepository.deleteAll();
-        loanRequestRepository.deleteAll();
-        cardRequestRepository.deleteAll();
-        cardRepository.deleteAll();
-        transferRepository.deleteAll();
-        accountRepository.deleteAll();
-        passwordResetTokenRepository.deleteAll();
-        activationTokenRepository.deleteAll();
-        employeeRepository.deleteAll();
-        userRepository.deleteAll();
-        clientRepository.deleteAll();
-        companyRepository.deleteAll();
-        jdbcTemplate.update("delete from currencies");
+        IntegrationTestCleanup.truncateAllTables(dataSource);
     }
 
     // ===== Internal transfer (same currency) =====

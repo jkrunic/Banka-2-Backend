@@ -25,9 +25,12 @@ import rs.raf.banka2_bek.stock.model.ListingType;
 import rs.raf.banka2_bek.stock.repository.ListingDailyPriceInfoRepository;
 import rs.raf.banka2_bek.stock.repository.ListingRepository;
 
+import javax.sql.DataSource;
 import java.time.LocalDate;
 
 import java.math.BigDecimal;
+
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
@@ -47,6 +50,7 @@ class ListingControllerIntegrationTest {
     @Autowired private ListingDailyPriceInfoRepository dailyPriceRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private JwtService jwtService;
+    @Autowired private DataSource dataSource;
 
     private Long aaplId;
     private Long forexId;
@@ -64,9 +68,7 @@ class ListingControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        dailyPriceRepository.deleteAll();
-        listingRepository.deleteAll();
-        userRepository.deleteAll();
+        IntegrationTestCleanup.truncateAllTables(dataSource);
         seedListings();
         aaplId = listingRepository.findByTicker("AAPL").orElseThrow().getId();
         forexId = listingRepository.findByTicker("EUR/USD").orElseThrow().getId();

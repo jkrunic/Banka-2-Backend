@@ -13,9 +13,12 @@ import rs.raf.banka2_bek.actuary.repository.ActuaryInfoRepository;
 import rs.raf.banka2_bek.employee.model.Employee;
 import rs.raf.banka2_bek.employee.repository.EmployeeRepository;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,9 +36,12 @@ class ActuaryLimitResetSchedulerIntegrationTest {
     @Autowired
     private EmployeeRepository employeeRepository;
 
+    @Autowired
+    private DataSource dataSource;
+
     @BeforeEach
     void clean() {
-        actuaryInfoRepository.deleteAll();
+        IntegrationTestCleanup.truncateAllTables(dataSource);
     }
 
     private Employee savedEmployee(String email) {

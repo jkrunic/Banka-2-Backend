@@ -41,7 +41,9 @@ import rs.raf.banka2_bek.exchange.dto.ExchangeRateDto;
 import rs.raf.banka2_bek.payment.repository.PaymentAccountRepository;
 import rs.raf.banka2_bek.payment.repository.PaymentRepository;
 import rs.raf.banka2_bek.transaction.repository.TransactionRepository;
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.io.IOException;
@@ -96,6 +98,9 @@ class PaymentControllerIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
+    private DataSource dataSource;
+
+    @Autowired
     private EntityManager entityManager;
 
     @Autowired
@@ -123,16 +128,7 @@ class PaymentControllerIntegrationTest {
             }
         });
 
-        transactionRepository.deleteAll();
-        paymentRepository.deleteAll();
-        paymentAccountRepository.deleteAll();
-        passwordResetTokenRepository.deleteAll();
-        activationTokenRepository.deleteAll();
-        employeeRepository.deleteAll();
-        userRepository.deleteAll();
-        clientRepository.deleteAll();
-        companyRepository.deleteAll();
-        jdbcTemplate.update("delete from currencies");
+        IntegrationTestCleanup.truncateAllTables(dataSource);
     }
 
     @Test

@@ -31,11 +31,14 @@ import rs.raf.banka2_bek.employee.model.Employee;
 import rs.raf.banka2_bek.employee.repository.ActivationTokenRepository;
 import rs.raf.banka2_bek.employee.repository.EmployeeRepository;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -64,6 +67,9 @@ class ActuaryControllerIntegrationTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private DataSource dataSource;
 
     private final RestTemplate restTemplate = createRestTemplate();
 
@@ -103,11 +109,7 @@ class ActuaryControllerIntegrationTest {
     }
 
     private void cleanDatabase() {
-        // CHANGE: zadržano centralizovano čišćenje baza iz oba pristupa
-        actuaryInfoRepository.deleteAll();
-        activationTokenRepository.deleteAll();
-        employeeRepository.deleteAll();
-        userRepository.deleteAll();
+        IntegrationTestCleanup.truncateAllTables(dataSource);
     }
 
     private void seedEmployees() {

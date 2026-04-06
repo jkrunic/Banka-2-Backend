@@ -15,8 +15,11 @@ import rs.raf.banka2_bek.stock.model.Listing;
 import rs.raf.banka2_bek.stock.model.ListingType;
 import rs.raf.banka2_bek.stock.repository.ListingRepository;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,11 +35,12 @@ public class OrderCleanupSchedulerIntegrationTest {
     @Autowired
     private ListingRepository listingRepository;
 
+    @Autowired
+    private DataSource dataSource;
 
     @BeforeEach
     void clean() {
-        orderRepository.deleteAll();
-        listingRepository.deleteAll();
+        IntegrationTestCleanup.truncateAllTables(dataSource);
     }
 
     private Listing savedListing() {

@@ -40,7 +40,9 @@ import rs.raf.banka2_bek.transfers.repository.TransferRepository;
 import rs.raf.banka2_bek.loan.repository.LoanRepository;
 import rs.raf.banka2_bek.loan.repository.LoanRequestRepository;
 import rs.raf.banka2_bek.notification.service.MailNotificationService;
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
+import javax.sql.DataSource;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -73,6 +75,7 @@ class LoanControllerIntegrationTest {
     @Autowired private CardRequestRepository cardRequestRepository;
     @Autowired private CompanyRepository companyRepository;
     @Autowired private JdbcTemplate jdbcTemplate;
+    @Autowired private DataSource dataSource;
     @Autowired private EntityManager entityManager;
     @Autowired private ObjectMapper objectMapper;
 
@@ -86,20 +89,7 @@ class LoanControllerIntegrationTest {
             @Override public boolean hasError(ClientHttpResponse response) throws IOException { return false; }
         });
 
-        installmentRepository.deleteAll();
-        loanRepository.deleteAll();
-        loanRequestRepository.deleteAll();
-        transferRepository.deleteAll();
-        cardRequestRepository.deleteAll();
-        cardRepository.deleteAll();
-        accountRepository.deleteAll();
-        passwordResetTokenRepository.deleteAll();
-        activationTokenRepository.deleteAll();
-        employeeRepository.deleteAll();
-        userRepository.deleteAll();
-        clientRepository.deleteAll();
-        companyRepository.deleteAll();
-        jdbcTemplate.update("delete from currencies");
+        IntegrationTestCleanup.truncateAllTables(dataSource);
     }
 
     // ===== Create loan request =====

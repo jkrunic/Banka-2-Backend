@@ -19,7 +19,9 @@ import rs.raf.banka2_bek.employee.model.Employee;
 import rs.raf.banka2_bek.employee.repository.ActivationTokenRepository;
 import rs.raf.banka2_bek.employee.repository.EmployeeRepository;
 import rs.raf.banka2_bek.notification.service.MailNotificationService;
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
+import javax.sql.DataSource;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -51,11 +53,12 @@ class EmployeeAuthControllerIntegrationTest {
         @Autowired
         private PasswordResetTokenRepository passwordResetTokenRepository;
 
+        @Autowired
+        private DataSource dataSource;
+
         @BeforeEach
         void cleanDatabase() {
-                                passwordResetTokenRepository.deleteAll();
-                activationTokenRepository.deleteAll();
-                employeeRepository.deleteAll();
+                IntegrationTestCleanup.truncateAllTables(dataSource);
         }
 
         private String url(String path) {

@@ -30,7 +30,9 @@ import rs.raf.banka2_bek.order.repository.OrderRepository;
 import rs.raf.banka2_bek.stock.model.Listing;
 import rs.raf.banka2_bek.stock.model.ListingType;
 import rs.raf.banka2_bek.stock.repository.ListingRepository;
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -54,6 +56,7 @@ class OrderControllerIntegrationTest {
     @Autowired private UserRepository userRepository;
     @Autowired private JwtService jwtService;
     @Autowired private rs.raf.banka2_bek.employee.repository.ActivationTokenRepository activationTokenRepository;
+    @Autowired private DataSource dataSource;
 
     private static RestTemplate createRestTemplate() {
         RestTemplate rt = new RestTemplate();
@@ -68,13 +71,7 @@ class OrderControllerIntegrationTest {
 
     @BeforeEach
     void cleanDatabase() {
-        actuaryInfoRepository.deleteAll();
-        orderRepository.deleteAll();
-        listingRepository.deleteAll();
-        activationTokenRepository.deleteAll();
-        employeeRepository.deleteAll();
-        clientRepository.deleteAll();
-        userRepository.deleteAll();
+        IntegrationTestCleanup.truncateAllTables(dataSource);
     }
 
     private String url(String path) {

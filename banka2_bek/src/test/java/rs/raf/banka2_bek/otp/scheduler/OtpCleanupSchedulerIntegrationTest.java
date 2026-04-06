@@ -9,8 +9,11 @@ import org.springframework.test.context.ActiveProfiles;
 import rs.raf.banka2_bek.otp.model.OtpVerification;
 import rs.raf.banka2_bek.otp.repository.OtpVerificationRepository;
 
+import javax.sql.DataSource;
 import java.time.LocalDateTime;
 import java.util.List;
+
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,9 +27,12 @@ class OtpCleanupSchedulerIntegrationTest {
     @Autowired
     private OtpVerificationRepository otpVerificationRepository;
 
+    @Autowired
+    private DataSource dataSource;
+
     @BeforeEach
     void cleanDatabase() {
-        otpVerificationRepository.deleteAll();
+        IntegrationTestCleanup.truncateAllTables(dataSource);
     }
 
     private OtpVerification buildOtp(String email, LocalDateTime createdAt, boolean used) {

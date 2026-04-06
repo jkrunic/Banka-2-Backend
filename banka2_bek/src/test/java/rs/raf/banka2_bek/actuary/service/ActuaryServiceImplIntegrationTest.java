@@ -19,9 +19,12 @@ import rs.raf.banka2_bek.auth.repository.UserRepository;
 import rs.raf.banka2_bek.employee.model.Employee;
 import rs.raf.banka2_bek.employee.repository.EmployeeRepository;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Set;
+
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -41,6 +44,9 @@ class ActuaryServiceImplIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private DataSource dataSource;
+
     private Employee agentMarko;
     private Employee agentJelena;
     private Employee supervisorNina;
@@ -48,9 +54,7 @@ class ActuaryServiceImplIntegrationTest {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        actuaryInfoRepository.deleteAll();
-        employeeRepository.deleteAll();
-        userRepository.deleteAll();
+        IntegrationTestCleanup.truncateAllTables(dataSource);
 
         User admin = new User();
         admin.setEmail("admin@banka.rs");

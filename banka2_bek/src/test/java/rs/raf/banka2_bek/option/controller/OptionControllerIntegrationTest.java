@@ -37,6 +37,7 @@ import rs.raf.banka2_bek.stock.model.Listing;
 import rs.raf.banka2_bek.stock.model.ListingType;
 import rs.raf.banka2_bek.stock.repository.ListingRepository;
 
+import javax.sql.DataSource;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -44,6 +45,7 @@ import java.time.LocalDateTime;
 import java.util.Set;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -86,6 +88,9 @@ class OptionControllerIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private DataSource dataSource;
+
     @BeforeEach
     void setUp() {
         restTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
@@ -95,13 +100,7 @@ class OptionControllerIntegrationTest {
             }
         });
 
-        portfolioRepository.deleteAll();
-        optionRepository.deleteAll();
-        actuaryInfoRepository.deleteAll();
-        accountRepository.deleteAll();
-        employeeRepository.deleteAll();
-        listingRepository.deleteAll();
-        companyRepository.deleteAll();
+        IntegrationTestCleanup.truncateAllTables(dataSource);
 
         // Create bank USD account (Company ID=3) required by OptionService.getBankAccount()
         ensureBankUsdAccount();

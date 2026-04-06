@@ -20,7 +20,9 @@ import rs.raf.banka2_bek.auth.service.JwtService;
 import rs.raf.banka2_bek.client.model.Client;
 import rs.raf.banka2_bek.client.repository.ClientRepository;
 import rs.raf.banka2_bek.payment.repository.PaymentRecipientRepository;
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
+import javax.sql.DataSource;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -64,13 +66,14 @@ class PaymentRecipientControllerIntegrationTest {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private DataSource dataSource;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void cleanDatabase() {
-        paymentRecipientRepository.deleteAll();
-        clientRepository.deleteAll();
-        userRepository.deleteAll();
+        IntegrationTestCleanup.truncateAllTables(dataSource);
     }
 
     private String url(String path) {

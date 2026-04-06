@@ -22,7 +22,9 @@ import rs.raf.banka2_bek.employee.repository.ActivationTokenRepository;
 import rs.raf.banka2_bek.employee.repository.EmployeeRepository;
 import rs.raf.banka2_bek.exchange.ExchangeService;
 import rs.raf.banka2_bek.notification.service.MailNotificationService;
+import rs.raf.banka2_bek.IntegrationTestCleanup;
 
+import javax.sql.DataSource;
 import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,6 +45,7 @@ class ClientControllerIntegrationTest {
     @Autowired private ActivationTokenRepository activationTokenRepository;
     @Autowired private PasswordResetTokenRepository passwordResetTokenRepository;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired private DataSource dataSource;
 
     @MockitoBean private ExchangeService exchangeService;
     @MockitoBean private MailNotificationService mailNotificationService;
@@ -54,11 +57,7 @@ class ClientControllerIntegrationTest {
             @Override public boolean hasError(ClientHttpResponse response) throws IOException { return false; }
         });
 
-        passwordResetTokenRepository.deleteAll();
-        activationTokenRepository.deleteAll();
-        employeeRepository.deleteAll();
-        userRepository.deleteAll();
-        clientRepository.deleteAll();
+        IntegrationTestCleanup.truncateAllTables(dataSource);
     }
 
     // ===== Create client =====
