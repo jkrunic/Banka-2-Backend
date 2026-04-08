@@ -7,6 +7,8 @@
 --   Zaposleni (employees tabela):      Zaposleni12
 -- ============================================================
 
+SET sql_mode='';
+
 -- Sacekaj da Hibernate kreira tabele (ddl-auto=update)
 -- Ovaj fajl se izvrsava posle kreiranja baze
 
@@ -214,14 +216,14 @@ VALUES
 -- ============================================================
 
 INSERT INTO companies (id, name, registration_number, tax_number, activity_code, address,
-                       majority_owner_id, active, created_at)
+                       majority_owner_id, active, is_state, created_at)
 VALUES
     (1, 'TechStar DOO', '12345678', '123456789', '62.01',
      'Bulevar Mihajla Pupina 10, Novi Beograd',
-     NULL, 1, NOW()),
+     NULL, 1, 0, NOW()),
     (2, 'Green Food AD', '87654321', '987654321', '10.10',
      'Industrijska zona bb, Subotica',
-     NULL, 1, NOW())
+     NULL, 1, 0, NOW())
     ON DUPLICATE KEY UPDATE name = name;
 
 -- ============================================================
@@ -348,11 +350,11 @@ VALUES
 
 -- Prvo kreiramo firmu za banku
 INSERT INTO companies (id, name, registration_number, tax_number, activity_code, address,
-                       majority_owner_id, active, created_at)
+                       majority_owner_id, active, is_state, created_at)
 VALUES
     (3, 'Banka 2025 Tim 2', '22200022', '222000222', '64.19',
      'Bulevar Kralja Aleksandra 73, Beograd',
-     NULL, 1, NOW())
+     NULL, 1, 0, NOW())
     ON DUPLICATE KEY UPDATE name = name;
 
 -- Država (Republika Srbija) — poseban entitet za uplatu poreza
@@ -493,251 +495,191 @@ AND NOT EXISTS (
 -- LISTINGS (hartije od vrednosti za Celinu 3)
 -- ============================================================
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, base_currency, quote_currency, liquidity,
                       contract_size, contract_unit, settlement_date)
-SELECT * FROM (SELECT
-  'AAPL' AS ticker, 'Apple Inc.' AS name, 'NASDAQ' AS ea, 'STOCK' AS lt,
-  189.8400 AS price, 190.1200 AS ask, 189.5600 AS bid, 54230000 AS vol, 2.3400 AS pc, NOW() AS lr,
-  15500000000 AS os, 0.0055 AS dy, NULL AS bc, NULL AS qc, NULL AS liq, 1 AS cs, NULL AS cu, NULL AS sd
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'AAPL');
+VALUES (  'AAPL', 'Apple Inc.', 'NASDAQ', 'STOCK',
+  189.8400, 190.1200, 189.5600, 54230000, 2.3400, NOW(),
+  15500000000, 0.0055, NULL, NULL, NULL, 1, NULL, NULL);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
-SELECT * FROM (SELECT
-  'MSFT', 'Microsoft Corp.', 'NASDAQ', 'STOCK',
+VALUES (  'MSFT', 'Microsoft Corp.', 'NASDAQ', 'STOCK',
   415.2600, 415.8000, 414.7200, 22100000, -1.1800, NOW(),
-  7430000000, 0.0072, 1
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'MSFT');
+  7430000000, 0.0072, 1);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
-SELECT * FROM (SELECT
-  'GOOG', 'Alphabet Inc.', 'NASDAQ', 'STOCK',
+VALUES (  'GOOG', 'Alphabet Inc.', 'NASDAQ', 'STOCK',
   173.4500, 173.9000, 173.0000, 18500000, 0.8700, NOW(),
-  12200000000, 0.0000, 1
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'GOOG');
+  12200000000, 0.0000, 1);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
-SELECT * FROM (SELECT
-  'TSLA', 'Tesla Inc.', 'NASDAQ', 'STOCK',
+VALUES (  'TSLA', 'Tesla Inc.', 'NASDAQ', 'STOCK',
   248.9100, 249.5000, 248.3200, 72300000, -5.4300, NOW(),
-  3180000000, 0.0000, 1
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'TSLA');
+  3180000000, 0.0000, 1);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
-SELECT * FROM (SELECT
-  'AMZN', 'Amazon.com Inc.', 'NASDAQ', 'STOCK',
+VALUES (  'AMZN', 'Amazon.com Inc.', 'NASDAQ', 'STOCK',
   186.3200, 186.8000, 185.8400, 35600000, 1.5600, NOW(),
-  10300000000, 0.0000, 1
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'AMZN');
+  10300000000, 0.0000, 1);
 
 -- Forex parovi
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
-SELECT * FROM (SELECT
-  'EUR/USD', 'Euro / US Dollar', 'FOREX', 'FOREX',
+VALUES (  'EUR/USD', 'Euro / US Dollar', 'FOREX', 'FOREX',
   1.0856, 1.0858, 1.0854, 180000000, 0.0012, NOW(),
-  'EUR', 'USD', 'HIGH', 1000
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'EUR/USD');
+  'EUR', 'USD', 'HIGH', 1000);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
-SELECT * FROM (SELECT
-  'GBP/USD', 'British Pound / US Dollar', 'FOREX', 'FOREX',
+VALUES (  'GBP/USD', 'British Pound / US Dollar', 'FOREX', 'FOREX',
   1.2943, 1.2946, 1.2940, 95000000, -0.0008, NOW(),
-  'GBP', 'USD', 'HIGH', 1000
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'GBP/USD');
+  'GBP', 'USD', 'HIGH', 1000);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
-SELECT * FROM (SELECT
-  'USD/JPY', 'US Dollar / Japanese Yen', 'FOREX', 'FOREX',
+VALUES (  'USD/JPY', 'US Dollar / Japanese Yen', 'FOREX', 'FOREX',
   149.2300, 149.2600, 149.2000, 120000000, 0.4500, NOW(),
-  'USD', 'JPY', 'HIGH', 1000
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'USD/JPY');
+  'USD', 'JPY', 'HIGH', 1000);
 
 -- Futures
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       contract_size, contract_unit, settlement_date)
-SELECT * FROM (SELECT
-  'CLM26', 'Crude Oil June 2026', 'CME', 'FUTURES',
+VALUES (  'CLM26', 'Crude Oil June 2026', 'CME', 'FUTURES',
   68.4500, 68.5200, 68.3800, 312000, -0.8700, NOW(),
-  1000, 'Barrel', '2026-06-20'
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'CLM26');
+  1000, 'Barrel', '2026-06-20');
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       contract_size, contract_unit, settlement_date)
-SELECT * FROM (SELECT
-  'GCQ26', 'Gold August 2026', 'CME', 'FUTURES',
+VALUES (  'GCQ26', 'Gold August 2026', 'CME', 'FUTURES',
   2345.8000, 2346.5000, 2345.1000, 185000, 12.4000, NOW(),
-  100, 'Troy Ounce', '2026-08-27'
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'GCQ26');
+  100, 'Troy Ounce', '2026-08-27');
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       contract_size, contract_unit, settlement_date)
-SELECT * FROM (SELECT
-  'SIH26', 'Silver March 2026', 'CME', 'FUTURES',
+VALUES (  'SIH26', 'Silver March 2026', 'CME', 'FUTURES',
   27.3500, 27.3900, 27.3100, 64000, 0.1800, NOW(),
-  5000, 'Troy Ounce', '2026-03-27'
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'SIH26');
+  5000, 'Troy Ounce', '2026-03-27');
 
 -- Dodatni stocks (10 novih)
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
-SELECT * FROM (SELECT
-  'META', 'Meta Platforms Inc.', 'NASDAQ', 'STOCK',
+VALUES (  'META', 'Meta Platforms Inc.', 'NASDAQ', 'STOCK',
   500.1200, 500.6200, 499.6200, 18200000, 3.4500, NOW(),
-  2560000000, 0.0000, 1
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'META');
+  2560000000, 0.0000, 1);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
-SELECT * FROM (SELECT
-  'NVDA', 'NVIDIA Corp.', 'NASDAQ', 'STOCK',
+VALUES (  'NVDA', 'NVIDIA Corp.', 'NASDAQ', 'STOCK',
   880.3500, 881.2300, 879.4700, 41500000, 12.6000, NOW(),
-  24600000000, 0.0004, 1
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'NVDA');
+  24600000000, 0.0004, 1);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
-SELECT * FROM (SELECT
-  'JPM', 'JPMorgan Chase & Co.', 'NYSE', 'STOCK',
+VALUES (  'JPM', 'JPMorgan Chase & Co.', 'NYSE', 'STOCK',
   195.4200, 195.6200, 195.2200, 9800000, 1.2300, NOW(),
-  2870000000, 0.0245, 1
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'JPM');
+  2870000000, 0.0245, 1);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
-SELECT * FROM (SELECT
-  'V', 'Visa Inc.', 'NYSE', 'STOCK',
+VALUES (  'V', 'Visa Inc.', 'NYSE', 'STOCK',
   280.7500, 281.0300, 280.4700, 7200000, 0.8500, NOW(),
-  2050000000, 0.0076, 1
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'V');
+  2050000000, 0.0076, 1);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
-SELECT * FROM (SELECT
-  'JNJ', 'Johnson & Johnson', 'NYSE', 'STOCK',
+VALUES (  'JNJ', 'Johnson & Johnson', 'NYSE', 'STOCK',
   155.3200, 155.4800, 155.1600, 6500000, -0.4200, NOW(),
-  2410000000, 0.0302, 1
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'JNJ');
+  2410000000, 0.0302, 1);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
-SELECT * FROM (SELECT
-  'WMT', 'Walmart Inc.', 'NYSE', 'STOCK',
+VALUES (  'WMT', 'Walmart Inc.', 'NYSE', 'STOCK',
   60.2500, 60.3100, 60.1900, 8400000, 0.3200, NOW(),
-  8050000000, 0.0135, 1
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'WMT');
+  8050000000, 0.0135, 1);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
-SELECT * FROM (SELECT
-  'DIS', 'The Walt Disney Co.', 'NYSE', 'STOCK',
+VALUES (  'DIS', 'The Walt Disney Co.', 'NYSE', 'STOCK',
   115.4800, 115.6000, 115.3600, 10200000, -1.1200, NOW(),
-  1830000000, 0.0000, 1
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'DIS');
+  1830000000, 0.0000, 1);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
-SELECT * FROM (SELECT
-  'NFLX', 'Netflix Inc.', 'NASDAQ', 'STOCK',
+VALUES (  'NFLX', 'Netflix Inc.', 'NASDAQ', 'STOCK',
   620.8000, 621.4200, 620.1800, 5300000, 4.5600, NOW(),
-  430000000, 0.0000, 1
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'NFLX');
+  430000000, 0.0000, 1);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
-SELECT * FROM (SELECT
-  'BA', 'The Boeing Co.', 'NYSE', 'STOCK',
+VALUES (  'BA', 'The Boeing Co.', 'NYSE', 'STOCK',
   180.2300, 180.4100, 180.0500, 12100000, -2.3400, NOW(),
-  610000000, 0.0000, 1
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'BA');
+  610000000, 0.0000, 1);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
-SELECT * FROM (SELECT
-  'INTC', 'Intel Corp.', 'NASDAQ', 'STOCK',
+VALUES (  'INTC', 'Intel Corp.', 'NASDAQ', 'STOCK',
   30.1500, 30.1800, 30.1200, 28500000, -0.6500, NOW(),
-  4180000000, 0.0133, 1
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'INTC');
+  4180000000, 0.0133, 1);
 
 -- Dodatni forex parovi (5 novih)
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
-SELECT * FROM (SELECT
-  'USD/CHF', 'US Dollar / Swiss Franc', 'FOREX', 'FOREX',
+VALUES (  'USD/CHF', 'US Dollar / Swiss Franc', 'FOREX', 'FOREX',
   0.8815, 0.8818, 0.8812, 72000000, -0.0023, NOW(),
-  'USD', 'CHF', 'HIGH', 1000
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'USD/CHF');
+  'USD', 'CHF', 'HIGH', 1000);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
-SELECT * FROM (SELECT
-  'AUD/USD', 'Australian Dollar / US Dollar', 'FOREX', 'FOREX',
+VALUES (  'AUD/USD', 'Australian Dollar / US Dollar', 'FOREX', 'FOREX',
   0.6524, 0.6527, 0.6521, 58000000, 0.0015, NOW(),
-  'AUD', 'USD', 'MEDIUM', 1000
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'AUD/USD');
+  'AUD', 'USD', 'MEDIUM', 1000);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
-SELECT * FROM (SELECT
-  'USD/CAD', 'US Dollar / Canadian Dollar', 'FOREX', 'FOREX',
+VALUES (  'USD/CAD', 'US Dollar / Canadian Dollar', 'FOREX', 'FOREX',
   1.3612, 1.3615, 1.3609, 65000000, 0.0031, NOW(),
-  'USD', 'CAD', 'HIGH', 1000
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'USD/CAD');
+  'USD', 'CAD', 'HIGH', 1000);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
-SELECT * FROM (SELECT
-  'EUR/GBP', 'Euro / British Pound', 'FOREX', 'FOREX',
+VALUES (  'EUR/GBP', 'Euro / British Pound', 'FOREX', 'FOREX',
   0.8523, 0.8526, 0.8520, 42000000, -0.0009, NOW(),
-  'EUR', 'GBP', 'HIGH', 1000
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'EUR/GBP');
+  'EUR', 'GBP', 'HIGH', 1000);
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
-SELECT * FROM (SELECT
-  'EUR/JPY', 'Euro / Japanese Yen', 'FOREX', 'FOREX',
+VALUES (  'EUR/JPY', 'Euro / Japanese Yen', 'FOREX', 'FOREX',
   163.1200, 163.1800, 163.0600, 55000000, 0.5600, NOW(),
-  'EUR', 'JPY', 'HIGH', 1000
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'EUR/JPY');
+  'EUR', 'JPY', 'HIGH', 1000);
 
 -- Dodatni futures (4 nova)
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       contract_size, contract_unit, settlement_date)
-SELECT * FROM (SELECT
-  'NGK26', 'Natural Gas May 2026', 'CME', 'FUTURES',
+VALUES (  'NGK26', 'Natural Gas May 2026', 'CME', 'FUTURES',
   2.1050, 2.1100, 2.1000, 145000, 0.0350, NOW(),
-  10000, 'MMBtu', '2026-05-28'
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'NGK26');
+  10000, 'MMBtu', '2026-05-28');
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       contract_size, contract_unit, settlement_date)
-SELECT * FROM (SELECT
-  'ZCN26', 'Corn July 2026', 'CME', 'FUTURES',
+VALUES (  'ZCN26', 'Corn July 2026', 'CME', 'FUTURES',
   450.2500, 450.7500, 449.7500, 98000, 3.5000, NOW(),
-  5000, 'Bushel', '2026-07-14'
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'ZCN26');
+  5000, 'Bushel', '2026-07-14');
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       contract_size, contract_unit, settlement_date)
-SELECT * FROM (SELECT
-  'ZWN26', 'Wheat July 2026', 'CME', 'FUTURES',
+VALUES (  'ZWN26', 'Wheat July 2026', 'CME', 'FUTURES',
   580.5000, 581.0800, 579.9200, 72000, -4.2500, NOW(),
-  5000, 'Bushel', '2026-07-14'
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'ZWN26');
+  5000, 'Bushel', '2026-07-14');
 
-INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       contract_size, contract_unit, settlement_date)
-SELECT * FROM (SELECT
-  'HGK26', 'Copper May 2026', 'CME', 'FUTURES',
+VALUES (  'HGK26', 'Copper May 2026', 'CME', 'FUTURES',
   4.2050, 4.2100, 4.2000, 54000, 0.0320, NOW(),
-  25000, 'Pound', '2026-05-27'
-) AS tmp WHERE NOT EXISTS (SELECT 1 FROM listings WHERE ticker = 'HGK26');
+  25000, 'Pound', '2026-05-27');
 
 -- ============================================================
 -- LISTING DAILY PRICES (istorijski podaci za grafike)
