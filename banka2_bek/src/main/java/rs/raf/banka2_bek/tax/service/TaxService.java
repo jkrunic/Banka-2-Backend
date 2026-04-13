@@ -15,6 +15,7 @@ import rs.raf.banka2_bek.employee.repository.EmployeeRepository;
 import rs.raf.banka2_bek.order.model.Order;
 import rs.raf.banka2_bek.order.model.OrderDirection;
 import rs.raf.banka2_bek.order.repository.OrderRepository;
+import rs.raf.banka2_bek.order.service.CurrencyConversionService;
 import rs.raf.banka2_bek.tax.dto.TaxRecordDto;
 import rs.raf.banka2_bek.tax.model.TaxRecord;
 import rs.raf.banka2_bek.tax.repository.TaxRecordRepository;
@@ -42,6 +43,7 @@ public class TaxService {
     private final UserRepository userRepository;
     private final EmployeeRepository employeeRepository;
     private final AccountRepository accountRepository;
+    private final CurrencyConversionService currencyConversionService;
 
     @Value("${bank.registration-number}")
     private String bankRegistrationNumber;
@@ -111,15 +113,20 @@ public class TaxService {
             List<Order> userOrders = entry.getValue();
 
             // Racunamo profit per-asset: za svaki listing posebno racunamo sell - buy
-            // pa sabiramo samo pozitivne profite (kapitalna dobit)
+            // pa sabiramo samo pozitivne profite (kapitalna dobit).
+            // S80: Svi iznosi se konvertuju u RSD pre agregacije, jer orderi mogu
+            // biti u razlicitim valutama (USD, EUR, RSD...).
             Map<Long, BigDecimal> buyByListing = new HashMap<>();
             Map<Long, BigDecimal> sellByListing = new HashMap<>();
+            Map<Long, String> currencyByListing = new HashMap<>();
 
             for (Order order : userOrders) {
                 Long listingId = order.getListing().getId();
                 BigDecimal orderValue = order.getPricePerUnit()
                         .multiply(BigDecimal.valueOf(order.getQuantity()))
                         .multiply(BigDecimal.valueOf(order.getContractSize()));
+
+                currencyByListing.putIfAbsent(listingId, resolveOrderCurrency(order));
 
                 if (order.getDirection() == OrderDirection.SELL) {
                     sellByListing.merge(listingId, orderValue, BigDecimal::add);
@@ -128,7 +135,8 @@ public class TaxService {
                 }
             }
 
-            // Za svaki listing: profit = sell - buy, akumuliramo samo pozitivne (kapitalna dobit)
+            // Za svaki listing: profit = sell - buy, konvertuj u RSD,
+            // akumuliraj samo pozitivne (kapitalna dobit).
             BigDecimal totalProfit = BigDecimal.ZERO;
             Set<Long> allListings = new HashSet<>(buyByListing.keySet());
             allListings.addAll(sellByListing.keySet());
@@ -137,7 +145,9 @@ public class TaxService {
                 BigDecimal buy = buyByListing.getOrDefault(listingId, BigDecimal.ZERO);
                 BigDecimal assetProfit = sell.subtract(buy);
                 if (assetProfit.compareTo(BigDecimal.ZERO) > 0) {
-                    totalProfit = totalProfit.add(assetProfit);
+                    String listingCurrency = currencyByListing.getOrDefault(listingId, "RSD");
+                    BigDecimal profitInRsd = convertToRsd(assetProfit, listingCurrency);
+                    totalProfit = totalProfit.add(profitInRsd);
                 }
             }
             BigDecimal taxOwed = totalProfit.compareTo(BigDecimal.ZERO) > 0
@@ -220,6 +230,41 @@ public class TaxService {
         accountRepository.save(stateAccount);
 
         return true;
+    }
+
+    /**
+     * Pronalazi valutu ordera na osnovu njegovog listinga (quoteCurrency).
+     * Fallback na "RSD" ako listing ili quoteCurrency nisu dostupni.
+     */
+    private String resolveOrderCurrency(Order order) {
+        try {
+            if (order.getListing() != null && order.getListing().getQuoteCurrency() != null
+                    && !order.getListing().getQuoteCurrency().isBlank()) {
+                return order.getListing().getQuoteCurrency();
+            }
+        } catch (Exception ignored) {
+            // defensive: listing lazy init moze da pukne u nekim testovima
+        }
+        return "RSD";
+    }
+
+    /**
+     * Konvertuje iznos u RSD. Ako je vec u RSD, vraca isti iznos.
+     * Koristi CurrencyConversionService (srednji kurs, bez provizije) — S80.
+     */
+    private BigDecimal convertToRsd(BigDecimal amount, String fromCurrency) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+        if (fromCurrency == null || "RSD".equalsIgnoreCase(fromCurrency)) {
+            return amount;
+        }
+        try {
+            return currencyConversionService.convert(amount, fromCurrency, "RSD");
+        } catch (Exception e) {
+            log.warn("Currency conversion {} -> RSD failed, using raw amount: {}", fromCurrency, e.getMessage());
+            return amount;
+        }
     }
 
     private String resolveUserName(Long userId, String userRole) {

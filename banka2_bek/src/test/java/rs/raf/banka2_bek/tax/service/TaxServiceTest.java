@@ -17,6 +17,7 @@ import rs.raf.banka2_bek.order.model.Order;
 import rs.raf.banka2_bek.order.model.OrderDirection;
 import rs.raf.banka2_bek.order.model.OrderStatus;
 import rs.raf.banka2_bek.order.repository.OrderRepository;
+import rs.raf.banka2_bek.order.service.CurrencyConversionService;
 import rs.raf.banka2_bek.stock.model.Listing;
 import rs.raf.banka2_bek.tax.dto.TaxRecordDto;
 import rs.raf.banka2_bek.tax.model.TaxRecord;
@@ -48,6 +49,7 @@ class TaxServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private EmployeeRepository employeeRepository;
     @Mock private AccountRepository accountRepository;
+    @Mock private CurrencyConversionService currencyConversionService;
 
     @InjectMocks
     private TaxService taxService;
@@ -263,6 +265,77 @@ class TaxServiceTest {
             verify(taxRecordRepository).save(captor.capture());
 
             assertThat(captor.getValue().getTotalProfit()).isEqualByComparingTo(new BigDecimal("5000"));
+        }
+    }
+
+    // ─── Currency conversion (S80) ──────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("CurrencyConversion (S80)")
+    class CurrencyConversion {
+
+        private Listing listingWithCurrency(Long id, String quoteCurrency) {
+            Listing l = new Listing();
+            l.setId(id);
+            l.setQuoteCurrency(quoteCurrency);
+            return l;
+        }
+
+        private Order buildOrderWithListing(Long userId, Listing listing, OrderDirection dir,
+                                            BigDecimal pricePerUnit, int qty) {
+            Order o = new Order();
+            o.setId((long) (Math.random() * 10000));
+            o.setUserId(userId);
+            o.setUserRole("CLIENT");
+            o.setDirection(dir);
+            o.setPricePerUnit(pricePerUnit);
+            o.setQuantity(qty);
+            o.setContractSize(1);
+            o.setDone(true);
+            o.setStatus(OrderStatus.DONE);
+            o.setListing(listing);
+            return o;
+        }
+
+        @Test
+        @DisplayName("Porez se agregira u RSD iz mix valuta (S80)")
+        void calculateTax_convertsMixedCurrencyProfitToRsd() {
+            // user 1: 100 USD profit iz AAPL (BUY@100 x1, SELL@200 x1 => 100 USD)
+            Listing aapl = listingWithCurrency(1L, "USD");
+            Order aaplBuy = buildOrderWithListing(1L, aapl, OrderDirection.BUY, new BigDecimal("100"), 1);
+            Order aaplSell = buildOrderWithListing(1L, aapl, OrderDirection.SELL, new BigDecimal("200"), 1);
+
+            // user 1: 5000 RSD profit iz XYZ (BUY@1000 x1, SELL@6000 x1 => 5000 RSD)
+            Listing xyz = listingWithCurrency(2L, "RSD");
+            Order xyzBuy = buildOrderWithListing(1L, xyz, OrderDirection.BUY, new BigDecimal("1000"), 1);
+            Order xyzSell = buildOrderWithListing(1L, xyz, OrderDirection.SELL, new BigDecimal("6000"), 1);
+
+            when(orderRepository.findByIsDoneTrue())
+                    .thenReturn(List.of(aaplBuy, aaplSell, xyzBuy, xyzSell));
+            when(userRepository.findById(1L)).thenReturn(Optional.of(
+                    new User("Marko", "Petrovic", "marko@test.com", "pass", true, "CLIENT")));
+            when(taxRecordRepository.findByUserIdAndUserType(1L, "CLIENT")).thenReturn(Optional.empty());
+            when(taxRecordRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            // Mock: 100 USD -> 10920 RSD (srednji kurs ~109.20)
+            when(currencyConversionService.convert(new BigDecimal("100"), "USD", "RSD"))
+                    .thenReturn(new BigDecimal("10920"));
+
+            taxService.calculateTaxForAllUsers();
+
+            ArgumentCaptor<TaxRecord> captor = ArgumentCaptor.forClass(TaxRecord.class);
+            verify(taxRecordRepository).save(captor.capture());
+            TaxRecord record = captor.getValue();
+
+            // totalProfit (u RSD) = 10920 (iz USD) + 5000 (RSD) = 15920
+            assertThat(record.getTotalProfit()).isEqualByComparingTo(new BigDecimal("15920"));
+            // taxOwed = 0.15 * 15920 = 2388
+            assertThat(record.getTaxOwed()).isEqualByComparingTo(new BigDecimal("2388"));
+            assertThat(record.getCurrency()).isEqualTo("RSD");
+
+            // Verifikuj da je CurrencyConversionService pozvan za USD (ne i za RSD)
+            verify(currencyConversionService).convert(new BigDecimal("100"), "USD", "RSD");
+            verify(currencyConversionService, never()).convert(any(), eq("RSD"), eq("RSD"));
         }
     }
 
