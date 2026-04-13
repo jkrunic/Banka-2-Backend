@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import rs.raf.banka2_bek.account.model.Account;
+import rs.raf.banka2_bek.account.model.AccountCategory;
 import rs.raf.banka2_bek.account.model.AccountStatus;
 
 import java.util.List;
@@ -16,6 +17,8 @@ import java.util.Optional;
 
 public interface AccountRepository extends JpaRepository<Account, Long> {
     List<Account> findByClientIdAndStatusOrderByAvailableBalanceDesc(Long clientId, AccountStatus status);
+
+    Optional<Account> findFirstByAccountCategoryAndCurrency_Code(AccountCategory accountCategory, String currencyCode);
 
     List<Account> findByClientId(Long clientId);
 
