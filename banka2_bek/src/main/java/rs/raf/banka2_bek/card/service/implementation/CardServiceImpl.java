@@ -1,6 +1,7 @@
 package rs.raf.banka2_bek.card.service.implementation;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,6 +27,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CardServiceImpl implements CardService {
@@ -112,7 +114,7 @@ public class CardServiceImpl implements CardService {
             mailNotificationService.sendCardBlockedMail(
                     card.getClient().getEmail(), last4, LocalDate.now());
         } catch (Exception e) {
-            // Email failure must not roll back the card operation
+            log.warn("Failed to send card notification email", e);
         }
 
         return response;
@@ -135,7 +137,7 @@ public class CardServiceImpl implements CardService {
             mailNotificationService.sendCardUnblockedMail(
                     card.getClient().getEmail(), last4);
         } catch (Exception e) {
-            // Email failure must not roll back the card operation
+            log.warn("Failed to send card notification email", e);
         }
 
         return response;

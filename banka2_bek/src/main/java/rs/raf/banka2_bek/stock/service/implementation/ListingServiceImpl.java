@@ -12,32 +12,29 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import rs.raf.banka2_bek.exchange.ExchangeService;
 import rs.raf.banka2_bek.exchange.dto.ExchangeRateDto;
 import rs.raf.banka2_bek.stock.dto.ListingDailyPriceDto;
 import rs.raf.banka2_bek.stock.dto.ListingDto;
 import rs.raf.banka2_bek.stock.mapper.ListingMapper;
-import rs.raf.banka2_bek.stock.model.ListingDailyPriceInfo;
 import rs.raf.banka2_bek.stock.model.Listing;
-
-import jakarta.transaction.Transactional;
-import org.springframework.scheduling.annotation.Scheduled;
-
+import rs.raf.banka2_bek.stock.model.ListingDailyPriceInfo;
 import rs.raf.banka2_bek.stock.model.ListingType;
 import rs.raf.banka2_bek.stock.repository.ListingDailyPriceInfoRepository;
 import rs.raf.banka2_bek.stock.repository.ListingRepository;
 import rs.raf.banka2_bek.stock.repository.ListingSpec;
 import rs.raf.banka2_bek.stock.service.ListingService;
 
-import java.time.LocalDate;
-import java.util.Optional;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 

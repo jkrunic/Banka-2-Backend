@@ -1,5 +1,6 @@
 package rs.raf.banka2_bek.loan.service.implementation;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class LoanServiceImpl implements LoanService {
 
@@ -102,7 +104,7 @@ public class LoanServiceImpl implements LoanService {
                     loanRequest.getAmount(),
                     currency.getCode());
         } catch (Exception e) {
-            // Email failure must not roll back the loan request
+            log.warn("Failed to send loan request notification email", e);
         }
 
         return response;
@@ -223,7 +225,7 @@ public class LoanServiceImpl implements LoanService {
                     loan.getMonthlyPayment(),
                     loan.getStartDate());
         } catch (Exception e) {
-            // Email failure must not roll back the loan approval
+            log.warn("Failed to send loan approval notification email", e);
         }
 
         return toLoanResponse(loan);
@@ -249,7 +251,7 @@ public class LoanServiceImpl implements LoanService {
                     request.getAmount(),
                     request.getCurrency().getCode());
         } catch (Exception e) {
-            // Email failure must not roll back the loan rejection
+            log.warn("Failed to send loan rejection notification email", e);
         }
 
         return response;

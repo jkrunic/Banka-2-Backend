@@ -45,7 +45,7 @@ public class ExchangeManagementController {
     }
 
     @PatchMapping("/{acronym}/test-mode")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public ResponseEntity<Map<String, String>> setTestMode(
             @PathVariable String acronym,
             @RequestBody Map<String, Boolean> body) {
@@ -68,7 +68,7 @@ public class ExchangeManagementController {
      * Postavlja kompletnu listu praznika za berzu (zamenjuje postojece).
      */
     @PutMapping("/{acronym}/holidays")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public ResponseEntity<Map<String, String>> setHolidays(
             @PathVariable String acronym,
             @RequestBody Set<LocalDate> holidays) {
@@ -81,7 +81,7 @@ public class ExchangeManagementController {
      * Dodaje pojedinacni praznik za berzu.
      */
     @PostMapping("/{acronym}/holidays")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public ResponseEntity<Map<String, String>> addHoliday(
             @PathVariable String acronym,
             @RequestBody Map<String, String> body) {
@@ -95,7 +95,7 @@ public class ExchangeManagementController {
      * Uklanja praznik za berzu.
      */
     @DeleteMapping("/{acronym}/holidays/{date}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public ResponseEntity<Map<String, String>> removeHoliday(
             @PathVariable String acronym,
             @PathVariable LocalDate date) {

@@ -25,7 +25,7 @@ class JwtServiceTest {
 
     @BeforeEach
     void setUp() {
-        jwtService = new JwtService();
+        jwtService = new JwtService(SECRET);
     }
 
     // ============================================================

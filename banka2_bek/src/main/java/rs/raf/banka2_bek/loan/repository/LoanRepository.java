@@ -4,11 +4,16 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import rs.raf.banka2_bek.loan.model.InterestType;
 import rs.raf.banka2_bek.loan.model.Loan;
 import rs.raf.banka2_bek.loan.model.LoanStatus;
 import rs.raf.banka2_bek.loan.model.LoanType;
 
+import java.util.List;
+
 public interface LoanRepository extends JpaRepository<Loan, Long> {
+
+    List<Loan> findByInterestTypeAndStatusIn(InterestType interestType, List<LoanStatus> statuses);
 
     Page<Loan> findByClientId(Long clientId, Pageable pageable);
 

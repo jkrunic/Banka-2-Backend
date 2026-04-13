@@ -48,10 +48,8 @@ public class VariableRateScheduler {
     public void adjustVariableRates() {
         log.info("=== Variable rate adjustment started ===");
 
-        List<Loan> variableLoans = loanRepository.findAll().stream()
-                .filter(loan -> loan.getInterestType() == InterestType.VARIABLE)
-                .filter(loan -> loan.getStatus() == LoanStatus.ACTIVE || loan.getStatus() == LoanStatus.LATE)
-                .toList();
+        List<Loan> variableLoans = loanRepository.findByInterestTypeAndStatusIn(
+                InterestType.VARIABLE, List.of(LoanStatus.ACTIVE, LoanStatus.LATE));
 
         if (variableLoans.isEmpty()) {
             log.info("No active variable-rate loans found. Skipping.");

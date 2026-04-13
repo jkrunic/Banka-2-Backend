@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
@@ -41,6 +42,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class AccountServiceImplementation implements AccountService {
 
@@ -440,6 +442,7 @@ public class AccountServiceImplementation implements AccountService {
             String email = getAuthenticatedEmail();
             return clientRepository.findByEmail(email).orElse(null);
         } catch (Exception e) {
+            log.warn("Error processing account operation", e);
             return null;
         }
     }

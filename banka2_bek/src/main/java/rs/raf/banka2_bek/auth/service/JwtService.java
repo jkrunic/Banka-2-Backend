@@ -3,6 +3,7 @@ package rs.raf.banka2_bek.auth.service;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import rs.raf.banka2_bek.auth.model.User;
@@ -15,11 +16,14 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    private static final String SECRET = "my-super-secret-key-for-jwt-token-generation-123456";
     private static final long ACCESS_TOKEN_EXPIRATION = 1000 * 60 * 15; // 15 min
     private static final long REFRESH_TOKEN_EXPIRATION = 1000 * 60 * 60 * 24 * 7; // 7 dana
 
-    private final SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+    private final SecretKey key;
+
+    public JwtService(@Value("${jwt.secret}") String secret) {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
 
     public String generateAccessToken(User user) {
         return Jwts.builder()

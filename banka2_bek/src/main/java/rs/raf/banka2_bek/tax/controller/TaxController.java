@@ -47,7 +47,7 @@ public class TaxController {
      * Zahteva ADMIN ulogu.
      */
     @PostMapping("/calculate")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public ResponseEntity<Void> triggerCalculation() {
         taxService.calculateTaxForAllUsers();
         return ResponseEntity.ok().build();

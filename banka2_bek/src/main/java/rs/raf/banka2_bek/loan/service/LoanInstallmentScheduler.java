@@ -117,7 +117,7 @@ public class LoanInstallmentScheduler {
                         currencyCode,
                         loan.getRemainingDebt());
             } catch (Exception e) {
-                // Email failure must not roll back the installment processing
+                log.warn("Failed to send installment paid notification email", e);
             }
         } else {
             // Insufficient funds - reschedule for 72h later
@@ -141,7 +141,7 @@ public class LoanInstallmentScheduler {
                         currencyCode,
                         nextRetryDate);
             } catch (Exception e) {
-                // Email failure must not roll back the installment processing
+                log.warn("Failed to send installment failed notification email", e);
             }
         }
     }

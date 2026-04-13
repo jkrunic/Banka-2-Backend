@@ -1,11 +1,11 @@
 package rs.raf.banka2_bek.option.service;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
@@ -63,8 +63,15 @@ class OptionServiceExtendedTest {
     @Mock private AccountRepository accountRepository;
     @Mock private PortfolioRepository portfolioRepository;
 
-    @InjectMocks
     private OptionService optionService;
+
+    @BeforeEach
+    void setUp() {
+        optionService = new OptionService(
+                optionRepository, listingRepository, employeeRepository,
+                actuaryInfoRepository, accountRepository, portfolioRepository,
+                "22200022");
+    }
 
     // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -276,7 +283,7 @@ class OptionServiceExtendedTest {
                     new BigDecimal("180.00"), LocalDate.now().plusDays(5), 4);
 
             when(optionRepository.findById(1L)).thenReturn(Optional.of(option));
-            when(accountRepository.findAll()).thenReturn(List.of(bank));
+            when(accountRepository.findBankAccountByCurrency("22200022", "USD")).thenReturn(Optional.of(bank));
             when(portfolioRepository.findByUserId(12L)).thenReturn(Collections.emptyList());
 
             optionService.exerciseOption(1L, "agent@test.com");
@@ -299,7 +306,7 @@ class OptionServiceExtendedTest {
                     new BigDecimal("180.00"), LocalDate.now().plusDays(5), 4);
 
             when(optionRepository.findById(1L)).thenReturn(Optional.of(option));
-            when(accountRepository.findAll()).thenReturn(List.of(bank));
+            when(accountRepository.findBankAccountByCurrency("22200022", "USD")).thenReturn(Optional.of(bank));
 
             assertThatThrownBy(() -> optionService.exerciseOption(1L, "agent@test.com"))
                     .isInstanceOf(IllegalStateException.class)
@@ -322,7 +329,7 @@ class OptionServiceExtendedTest {
             existingPortfolio.setAverageBuyPrice(new BigDecimal("200.00"));
 
             when(optionRepository.findById(1L)).thenReturn(Optional.of(option));
-            when(accountRepository.findAll()).thenReturn(List.of(bank));
+            when(accountRepository.findBankAccountByCurrency("22200022", "USD")).thenReturn(Optional.of(bank));
             when(portfolioRepository.findByUserId(12L)).thenReturn(List.of(existingPortfolio));
 
             optionService.exerciseOption(1L, "agent@test.com");
@@ -356,7 +363,7 @@ class OptionServiceExtendedTest {
 
             when(optionRepository.findById(1L)).thenReturn(Optional.of(option));
             when(portfolioRepository.findByUserId(12L)).thenReturn(List.of(portfolio));
-            when(accountRepository.findAll()).thenReturn(List.of(bank));
+            when(accountRepository.findBankAccountByCurrency("22200022", "USD")).thenReturn(Optional.of(bank));
 
             optionService.exerciseOption(1L, "agent@test.com");
 
@@ -384,7 +391,7 @@ class OptionServiceExtendedTest {
 
             when(optionRepository.findById(1L)).thenReturn(Optional.of(option));
             when(portfolioRepository.findByUserId(12L)).thenReturn(List.of(portfolio));
-            when(accountRepository.findAll()).thenReturn(List.of(bank));
+            when(accountRepository.findBankAccountByCurrency("22200022", "USD")).thenReturn(Optional.of(bank));
 
             optionService.exerciseOption(1L, "agent@test.com");
 
@@ -402,7 +409,7 @@ class OptionServiceExtendedTest {
             Account bank = buildBankAccount(new BigDecimal("100000.00"));
 
             when(optionRepository.findById(1L)).thenReturn(Optional.of(option));
-            when(accountRepository.findAll()).thenReturn(List.of(bank));
+            when(accountRepository.findBankAccountByCurrency("22200022", "USD")).thenReturn(Optional.of(bank));
             when(portfolioRepository.findByUserId(12L)).thenReturn(Collections.emptyList());
 
             assertThatThrownBy(() -> optionService.exerciseOption(1L, "agent@test.com"))
@@ -427,7 +434,7 @@ class OptionServiceExtendedTest {
             portfolio.setAverageBuyPrice(new BigDecimal("170.00"));
 
             when(optionRepository.findById(1L)).thenReturn(Optional.of(option));
-            when(accountRepository.findAll()).thenReturn(List.of(bank));
+            when(accountRepository.findBankAccountByCurrency("22200022", "USD")).thenReturn(Optional.of(bank));
             when(portfolioRepository.findByUserId(12L)).thenReturn(List.of(portfolio));
 
             assertThatThrownBy(() -> optionService.exerciseOption(1L, "agent@test.com"))
@@ -470,7 +477,7 @@ class OptionServiceExtendedTest {
             when(employeeRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(admin));
             // No ActuaryInfo needed for ADMIN
             when(optionRepository.findById(1L)).thenReturn(Optional.of(option));
-            when(accountRepository.findAll()).thenReturn(List.of(bank));
+            when(accountRepository.findBankAccountByCurrency("22200022", "USD")).thenReturn(Optional.of(bank));
             when(portfolioRepository.findByUserId(15L)).thenReturn(Collections.emptyList());
 
             optionService.exerciseOption(1L, "admin@test.com");

@@ -1,9 +1,9 @@
 package rs.raf.banka2_bek.option.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +33,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class OptionService {
 
     private static final Logger log = LoggerFactory.getLogger(OptionService.class);
@@ -44,6 +43,24 @@ public class OptionService {
     private final ActuaryInfoRepository actuaryInfoRepository;
     private final AccountRepository accountRepository;
     private final PortfolioRepository portfolioRepository;
+    private final String bankRegistrationNumber;
+
+    public OptionService(
+            OptionRepository optionRepository,
+            ListingRepository listingRepository,
+            EmployeeRepository employeeRepository,
+            ActuaryInfoRepository actuaryInfoRepository,
+            AccountRepository accountRepository,
+            PortfolioRepository portfolioRepository,
+            @Value("${bank.registration-number}") String bankRegistrationNumber) {
+        this.optionRepository = optionRepository;
+        this.listingRepository = listingRepository;
+        this.employeeRepository = employeeRepository;
+        this.actuaryInfoRepository = actuaryInfoRepository;
+        this.accountRepository = accountRepository;
+        this.portfolioRepository = portfolioRepository;
+        this.bankRegistrationNumber = bankRegistrationNumber;
+    }
 
     public List<OptionChainDto> getOptionsForStock(Long listingId) {
         Listing listing = listingRepository.findById(listingId)
@@ -239,14 +256,11 @@ public class OptionService {
     }
 
     /**
-     * Finds the bank account (Company ID = 3) in USD.
+     * Finds the bank's USD account using the configured bank registration number.
      * Same pattern as OrderExecutionService.getBankAccount.
      */
     private Account getBankAccount() {
-        return accountRepository.findAll().stream()
-                .filter(a -> a.getCompany() != null && a.getCompany().getId() == 3L)
-                .filter(a -> "USD".equals(a.getCurrency().getCode()))
-                .findFirst()
+        return accountRepository.findBankAccountByCurrency(bankRegistrationNumber, "USD")
                 .orElseThrow(() -> new IllegalStateException("Bank USD account not found!"));
     }
 

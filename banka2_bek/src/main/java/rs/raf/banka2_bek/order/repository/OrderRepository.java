@@ -24,4 +24,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
            "THEN o.quantity ELSE -o.quantity END), 0) FROM Order o " +
            "WHERE o.userId = :userId AND o.listing.id = :listingId AND o.isDone = true")
     int getNetPortfolioQuantity(@Param("userId") Long userId, @Param("listingId") Long listingId);
+
+    List<Order> findByIsDoneTrue();
 }

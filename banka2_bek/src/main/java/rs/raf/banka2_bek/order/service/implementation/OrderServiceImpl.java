@@ -214,7 +214,7 @@ public class OrderServiceImpl implements OrderService {
 
         boolean isSupervisor = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_EMPLOYEE"));
 
         if (isSupervisor) {
             return toDtoWithUserName(order);

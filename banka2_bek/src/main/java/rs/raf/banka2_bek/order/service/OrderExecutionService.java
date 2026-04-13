@@ -3,6 +3,7 @@ package rs.raf.banka2_bek.order.service;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rs.raf.banka2_bek.account.model.Account;
@@ -54,6 +55,9 @@ public class OrderExecutionService {
     private final PortfolioRepository portfolioRepository;
     private final TransactionRepository transactionRepository;
     private final AonValidationService aonValidationService;
+
+    @Value("${bank.registration-number}")
+    private String bankRegistrationNumber;
 
     /** Provizija za MARKET naloge: min(14% * price, $7) — spec: "koji iznos je manji" */
     private static final BigDecimal MARKET_COMMISSION_RATE = new BigDecimal("0.14");
@@ -163,33 +167,28 @@ public class OrderExecutionService {
         // Provizija se ne naplaćuje ako zaposleni trguje u ime banke
         BigDecimal commission = "EMPLOYEE".equals(order.getUserRole()) ? BigDecimal.ZERO : calculateCommission(totalPrice, order.getOrderType());
 
-        // 5. Finansijske operacije
-        try {
-            if (order.getDirection() == OrderDirection.BUY) {
-                updateAccountBalance(order, fillQuantity, executionPrice, commission);
-                updatePortfolio(order, fillQuantity, executionPrice);
-            } else {
-                updatePortfolio(order, -fillQuantity, executionPrice); // negativan qty za SELL
-                updateAccountBalance(order, fillQuantity, executionPrice, commission);
-            }
-            createFillTransaction(order, fillQuantity, executionPrice);
-
-            // 6. Ažurirati nalog
-            order.setRemainingPortions(order.getRemainingPortions() - fillQuantity);
-            order.setLastModification(LocalDateTime.now());
-            if (order.getRemainingPortions() <= 0) {
-                order.setDone(true);
-                order.setStatus(OrderStatus.DONE);
-            }
-            orderRepository.save(order);
-
-            log.info("Order #{} filled {} of {} @ {} (remaining: {}, commission: {})",
-                    order.getId(), fillQuantity, order.getQuantity(),
-                    executionPrice, order.getRemainingPortions(), commission);
-
-        } catch (Exception e) {
-            log.error("Failed to process financial settlement for order #{}: {}", order.getId(), e.getMessage());
+        // 5. Finansijske operacije — exception se propagira da @Transactional rollback-uje
+        if (order.getDirection() == OrderDirection.BUY) {
+            updateAccountBalance(order, fillQuantity, executionPrice, commission);
+            updatePortfolio(order, fillQuantity, executionPrice);
+        } else {
+            updatePortfolio(order, -fillQuantity, executionPrice); // negativan qty za SELL
+            updateAccountBalance(order, fillQuantity, executionPrice, commission);
         }
+        createFillTransaction(order, fillQuantity, executionPrice);
+
+        // 6. Ažurirati nalog
+        order.setRemainingPortions(order.getRemainingPortions() - fillQuantity);
+        order.setLastModification(LocalDateTime.now());
+        if (order.getRemainingPortions() <= 0) {
+            order.setDone(true);
+            order.setStatus(OrderStatus.DONE);
+        }
+        orderRepository.save(order);
+
+        log.info("Order #{} filled {} of {} @ {} (remaining: {}, commission: {})",
+                order.getId(), fillQuantity, order.getQuantity(),
+                executionPrice, order.getRemainingPortions(), commission);
     }
     private void createFillTransaction(Order order, int quantity, BigDecimal price) {
         Account account = accountRepository.findById(order.getAccountId())
@@ -305,13 +304,10 @@ public class OrderExecutionService {
     }
 
     /**
-     * Pronalazi racun banke (Company ID = 3) u valuti naloga.
+     * Pronalazi racun banke u valuti naloga koristeci optimizovan query.
      */
     private Account getBankAccount(Long currencyId) {
-        return accountRepository.findAll().stream()
-                .filter(a -> a.getCompany() != null && a.getCompany().getId() == 3L)
-                .filter(a -> a.getCurrency().getId().equals(currencyId))
-                .findFirst()
+        return accountRepository.findBankAccountByCurrencyId(bankRegistrationNumber, currencyId)
                 .orElseThrow(() -> new IllegalStateException("Bank account for currency ID " + currencyId + " not found!"));
     }
     private void createCommissionTransaction(Order order, Account bankAccount, BigDecimal commission) {

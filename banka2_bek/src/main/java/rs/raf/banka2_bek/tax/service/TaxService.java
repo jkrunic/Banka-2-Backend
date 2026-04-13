@@ -22,7 +22,12 @@ import rs.raf.banka2_bek.tax.repository.TaxRecordRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -88,9 +93,7 @@ public class TaxService {
     @Transactional
     public void calculateTaxForAllUsers() {
         LocalDateTime now = LocalDateTime.now();
-        List<Order> allDoneOrders = orderRepository.findAll().stream()
-                .filter(Order::isDone)
-                .toList();
+        List<Order> allDoneOrders = orderRepository.findByIsDoneTrue();
 
         // Grupisemo ordere po userId + userRole
         Map<String, List<Order>> grouped = allDoneOrders.stream()
@@ -107,22 +110,36 @@ public class TaxService {
             String userRole = parts[1];
             List<Order> userOrders = entry.getValue();
 
-            BigDecimal sellTotal = BigDecimal.ZERO;
-            BigDecimal buyTotal = BigDecimal.ZERO;
+            // Racunamo profit per-asset: za svaki listing posebno racunamo sell - buy
+            // pa sabiramo samo pozitivne profite (kapitalna dobit)
+            Map<Long, BigDecimal> buyByListing = new HashMap<>();
+            Map<Long, BigDecimal> sellByListing = new HashMap<>();
 
             for (Order order : userOrders) {
+                Long listingId = order.getListing().getId();
                 BigDecimal orderValue = order.getPricePerUnit()
                         .multiply(BigDecimal.valueOf(order.getQuantity()))
                         .multiply(BigDecimal.valueOf(order.getContractSize()));
 
                 if (order.getDirection() == OrderDirection.SELL) {
-                    sellTotal = sellTotal.add(orderValue);
+                    sellByListing.merge(listingId, orderValue, BigDecimal::add);
                 } else {
-                    buyTotal = buyTotal.add(orderValue);
+                    buyByListing.merge(listingId, orderValue, BigDecimal::add);
                 }
             }
 
-            BigDecimal totalProfit = sellTotal.subtract(buyTotal);
+            // Za svaki listing: profit = sell - buy, akumuliramo samo pozitivne (kapitalna dobit)
+            BigDecimal totalProfit = BigDecimal.ZERO;
+            Set<Long> allListings = new HashSet<>(buyByListing.keySet());
+            allListings.addAll(sellByListing.keySet());
+            for (Long listingId : allListings) {
+                BigDecimal sell = sellByListing.getOrDefault(listingId, BigDecimal.ZERO);
+                BigDecimal buy = buyByListing.getOrDefault(listingId, BigDecimal.ZERO);
+                BigDecimal assetProfit = sell.subtract(buy);
+                if (assetProfit.compareTo(BigDecimal.ZERO) > 0) {
+                    totalProfit = totalProfit.add(assetProfit);
+                }
+            }
             BigDecimal taxOwed = totalProfit.compareTo(BigDecimal.ZERO) > 0
                     ? totalProfit.multiply(TAX_RATE).setScale(4, RoundingMode.HALF_UP)
                     : BigDecimal.ZERO;
