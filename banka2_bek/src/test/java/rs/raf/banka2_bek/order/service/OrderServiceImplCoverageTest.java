@@ -50,9 +50,11 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -152,12 +154,19 @@ class OrderServiceImplCoverageTest {
         testPortfolio.setAverageBuyPrice(new BigDecimal("140"));
 
         lenient().when(currencyConversionService.getRate(anyString(), anyString())).thenReturn(BigDecimal.ONE);
+        lenient().when(currencyConversionService.convertForPurchase(
+                any(BigDecimal.class), anyString(), anyString(), anyBoolean()))
+                .thenAnswer(inv -> new CurrencyConversionService.ConversionResult(
+                        inv.getArgument(0), BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.ONE));
         lenient().when(currencyConversionService.convert(any(BigDecimal.class), anyString(), anyString()))
                 .thenAnswer(inv -> inv.getArgument(0));
         lenient().when(bankTradingAccountResolver.resolve(anyString())).thenReturn(bankUsd);
         lenient().when(accountRepository.findForUpdateById(100L)).thenReturn(Optional.of(clientUsd));
         lenient().when(portfolioRepository.findByUserIdAndListingIdForUpdate(anyLong(), anyLong()))
                 .thenReturn(Optional.of(testPortfolio));
+        // Role-aware metoda delegira na staru kad test-level stub ne kaze drugacije.
+        lenient().when(portfolioRepository.findByUserIdAndUserRoleAndListingIdForUpdate(anyLong(), anyString(), anyLong()))
+                .thenAnswer(inv -> portfolioRepository.findByUserIdAndListingIdForUpdate(inv.getArgument(0), inv.getArgument(2)));
         lenient().when(orderValidationService.parseOrderType(anyString())).thenReturn(OrderType.MARKET);
         lenient().when(orderValidationService.parseDirection(anyString())).thenReturn(OrderDirection.BUY);
     }
@@ -230,7 +239,8 @@ class OrderServiceImplCoverageTest {
 
         orderService.createOrder(dtoMarketBuy());
 
-        verify(currencyConversionService).getRate("EUR", "USD");
+        verify(currencyConversionService, org.mockito.Mockito.atLeastOnce())
+                .convertForPurchase(any(BigDecimal.class), eq("EUR"), eq("USD"), anyBoolean());
     }
 
     @Test
@@ -245,7 +255,8 @@ class OrderServiceImplCoverageTest {
 
         orderService.createOrder(dtoMarketBuy());
 
-        verify(currencyConversionService).getRate("GBP", "USD");
+        verify(currencyConversionService, org.mockito.Mockito.atLeastOnce())
+                .convertForPurchase(any(BigDecimal.class), eq("GBP"), eq("USD"), anyBoolean());
     }
 
     @Test
@@ -259,18 +270,20 @@ class OrderServiceImplCoverageTest {
         when(orderStatusService.determineStatus(anyString(), anyLong(), any())).thenReturn(OrderStatus.PENDING);
         when(orderRepository.save(any())).thenAnswer(inv -> { Order o = inv.getArgument(0); o.setId(1L); return o; });
         orderService.createOrder(dtoMarketBuy());
-        verify(currencyConversionService).getRate("EUR", "USD");
+        verify(currencyConversionService, org.mockito.Mockito.atLeastOnce())
+                .convertForPurchase(any(BigDecimal.class), eq("EUR"), eq("USD"), anyBoolean());
 
         // BELEX
         when(listingRepository.findById(1L)).thenReturn(Optional.of(listing(ListingType.STOCK, "BELEX")));
         orderService.createOrder(dtoMarketBuy());
-        verify(currencyConversionService).getRate("RSD", "USD");
+        verify(currencyConversionService, org.mockito.Mockito.atLeastOnce())
+                .convertForPurchase(any(BigDecimal.class), eq("RSD"), eq("USD"), anyBoolean());
 
-        // Unknown → default USD
+        // Unknown → default USD; racun je vec USD pa conversion se poziva sa ("USD","USD")
         when(listingRepository.findById(1L)).thenReturn(Optional.of(listing(ListingType.STOCK, "UNKNOWN")));
         orderService.createOrder(dtoMarketBuy());
-        // unknown → USD; racun je vec USD pa convert se poziva sa ("USD","USD")
-        verify(currencyConversionService).getRate("USD", "USD");
+        verify(currencyConversionService, org.mockito.Mockito.atLeastOnce())
+                .convertForPurchase(any(BigDecimal.class), eq("USD"), eq("USD"), anyBoolean());
     }
 
     @Test
@@ -288,7 +301,8 @@ class OrderServiceImplCoverageTest {
 
         orderService.createOrder(dtoMarketBuy());
 
-        verify(currencyConversionService).getRate("USD", "USD");
+        verify(currencyConversionService, org.mockito.Mockito.atLeastOnce())
+                .convertForPurchase(any(BigDecimal.class), eq("USD"), eq("USD"), anyBoolean());
     }
 
     // ─── calculateCommissionInListingCurrency: LIMIT grana ────────────────
@@ -379,9 +393,9 @@ class OrderServiceImplCoverageTest {
 
         assertThat(result.getStatus()).isEqualTo("APPROVED");
         verify(fundReservationService).reserveForBuy(any(), any());
-        // CLIENT → commission grana se izvrsava
+        // CLIENT → commission grana se izvrsava (i price i commission konverzija)
         verify(currencyConversionService, org.mockito.Mockito.atLeastOnce())
-                .convert(any(), anyString(), anyString());
+                .convertForPurchase(any(), anyString(), anyString(), anyBoolean());
     }
 
     @Test

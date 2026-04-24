@@ -29,26 +29,28 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("clientId") Long clientId
     );
 
+    // PostgreSQL: cast(:param as tip) je neophodan kad parametar moze biti null
+    // (vidi napomenu u PaymentRepository).
     @Query("""
        select t from Transaction t
        left join t.payment p
        left join t.transfer tr
        where t.account.client.id = :clientId
-         and (:fromDate is null or t.createdAt >= :fromDate)
-         and (:toDate is null or t.createdAt <= :toDate)
-         and (:minAmount is null or
+         and (cast(:fromDate as timestamp) is null or t.createdAt >= :fromDate)
+         and (cast(:toDate as timestamp) is null or t.createdAt <= :toDate)
+         and (cast(:minAmount as big_decimal) is null or
               (case
                    when p is not null then p.amount
                    when tr is not null then tr.fromAmount
                    else null
                end) >= :minAmount)
-         and (:maxAmount is null or
+         and (cast(:maxAmount as big_decimal) is null or
               (case
                    when p is not null then p.amount
                    when tr is not null then tr.fromAmount
                    else null
                end) <= :maxAmount)
-         and (:type is null or
+         and (cast(:type as string) is null or
               (:type = 'PAYMENT' and p is not null) or
               (:type = 'TRANSFER' and tr is not null))
        """)

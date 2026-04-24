@@ -66,10 +66,12 @@ public class LoanRequest {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
+    @org.hibernate.annotations.ColumnDefault("'PENDING'")
     @Builder.Default
     private LoanStatus status = LoanStatus.PENDING;
 
     @Column(nullable = false, updatable = false)
+    @org.hibernate.annotations.ColumnDefault("CURRENT_TIMESTAMP")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 }

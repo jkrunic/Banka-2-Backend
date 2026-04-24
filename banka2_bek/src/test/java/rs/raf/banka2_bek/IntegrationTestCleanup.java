@@ -16,8 +16,10 @@ public final class IntegrationTestCleanup {
              Statement stmt = conn.createStatement()) {
             stmt.execute("SET REFERENTIAL_INTEGRITY FALSE");
 
+            // H2 MODE=PostgreSQL sa DATABASE_TO_LOWER prijavljuje schema 'public';
+            // MODE=MySQL prijavljuje 'PUBLIC'. Case-insensitive poredjenje.
             ResultSet rs = stmt.executeQuery(
-                    "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC'");
+                    "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE UPPER(TABLE_SCHEMA)='PUBLIC'");
             List<String> tables = new ArrayList<>();
             while (rs.next()) {
                 tables.add(rs.getString(1));

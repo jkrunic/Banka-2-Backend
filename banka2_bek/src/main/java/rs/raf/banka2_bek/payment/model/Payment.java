@@ -37,6 +37,7 @@ public class Payment {
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal amount;
 
+    @org.hibernate.annotations.ColumnDefault("0")
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal fee = BigDecimal.ZERO;
 
@@ -58,6 +59,7 @@ public class Payment {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 15)
+    @org.hibernate.annotations.ColumnDefault("'PROCESSING'")
     @Builder.Default
     private PaymentStatus status = PaymentStatus.PROCESSING;
 
@@ -67,6 +69,7 @@ public class Payment {
 
     //trenutno UTC zbog docker env-a ili tako nesto
     @Column(nullable = false, updatable = false)
+    @org.hibernate.annotations.ColumnDefault("CURRENT_TIMESTAMP")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 }

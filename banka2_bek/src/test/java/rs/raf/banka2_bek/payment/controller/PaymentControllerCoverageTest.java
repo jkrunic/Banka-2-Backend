@@ -208,7 +208,7 @@ class PaymentControllerCoverageTest {
         CreatePaymentRequestDto dto = validDto();
         dto.setOtpCode("");
 
-        org.springframework.http.ResponseEntity<PaymentResponseDto> resp =
+        org.springframework.http.ResponseEntity<?> resp =
                 paymentController.createPayment(dto, auth);
 
         org.junit.jupiter.api.Assertions.assertEquals(400, resp.getStatusCode().value());
@@ -221,7 +221,7 @@ class PaymentControllerCoverageTest {
         CreatePaymentRequestDto dto = validDto();
         dto.setOtpCode(null);
 
-        org.springframework.http.ResponseEntity<PaymentResponseDto> resp =
+        org.springframework.http.ResponseEntity<?> resp =
                 paymentController.createPayment(dto, auth);
 
         org.junit.jupiter.api.Assertions.assertEquals(400, resp.getStatusCode().value());

@@ -27,6 +27,7 @@ public class PasswordResetToken {
     @Column(nullable = false)
     private LocalDateTime expiresAt;
 
+    @org.hibernate.annotations.ColumnDefault("0")
     @Column(nullable = false)
     private Boolean used = false;
 

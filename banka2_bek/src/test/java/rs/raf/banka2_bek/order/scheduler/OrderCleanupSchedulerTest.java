@@ -10,7 +10,7 @@ import rs.raf.banka2_bek.order.model.OrderStatus;
 import rs.raf.banka2_bek.order.repository.OrderRepository;
 import rs.raf.banka2_bek.stock.model.Listing;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
@@ -24,15 +24,14 @@ public class OrderCleanupSchedulerTest {
     @InjectMocks
     private OrderCleanupScheduler orderCleanupScheduler;
 
-
     @Test
-    void cleanupExpiredOrders_shouldDeclineExpiredOrder() {
+    void cleanupExpiredOrders_shouldDeclineOrderWithPassedSettlementDate() {
         Order order = mock(Order.class);
         Listing listing = mock(Listing.class);
-        when(order.getLastModification()).thenReturn(LocalDateTime.now().minusDays(2));
+        when(listing.getSettlementDate()).thenReturn(LocalDate.now().minusDays(1));
+        when(listing.getTicker()).thenReturn("CLM24");
         when(order.getListing()).thenReturn(listing);
-        when(orderRepository.findByStatusAndIsDoneFalse(OrderStatus.APPROVED))
-                .thenReturn(List.of(order));
+        when(orderRepository.findActiveNonDone()).thenReturn(List.of(order));
 
         orderCleanupScheduler.cleanupExpiredOrders();
 
@@ -42,11 +41,12 @@ public class OrderCleanupSchedulerTest {
     }
 
     @Test
-    void cleanupExpiredOrders_shouldNotDeclineRecentOrder() {
+    void cleanupExpiredOrders_shouldNotDeclineOrderWithFutureSettlement() {
         Order order = mock(Order.class);
-        when(order.getLastModification()).thenReturn(LocalDateTime.now());
-        when(orderRepository.findByStatusAndIsDoneFalse(OrderStatus.APPROVED))
-                .thenReturn(List.of(order));
+        Listing listing = mock(Listing.class);
+        when(listing.getSettlementDate()).thenReturn(LocalDate.now().plusDays(10));
+        when(order.getListing()).thenReturn(listing);
+        when(orderRepository.findActiveNonDone()).thenReturn(List.of(order));
 
         orderCleanupScheduler.cleanupExpiredOrders();
 
@@ -55,9 +55,22 @@ public class OrderCleanupSchedulerTest {
     }
 
     @Test
-    void cleanupExpiredOrders_shouldDoNothing_whenNoApprovedOrders() {
-        when(orderRepository.findByStatusAndIsDoneFalse(OrderStatus.APPROVED))
-                .thenReturn(List.of());
+    void cleanupExpiredOrders_shouldSkipOrderWithNullSettlementDate() {
+        Order order = mock(Order.class);
+        Listing listing = mock(Listing.class);
+        when(listing.getSettlementDate()).thenReturn(null);
+        when(order.getListing()).thenReturn(listing);
+        when(orderRepository.findActiveNonDone()).thenReturn(List.of(order));
+
+        orderCleanupScheduler.cleanupExpiredOrders();
+
+        verify(order, never()).setStatus(any());
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void cleanupExpiredOrders_shouldDoNothing_whenNoCandidates() {
+        when(orderRepository.findActiveNonDone()).thenReturn(List.of());
 
         orderCleanupScheduler.cleanupExpiredOrders();
 

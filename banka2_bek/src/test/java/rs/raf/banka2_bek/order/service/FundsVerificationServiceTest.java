@@ -1,5 +1,6 @@
 package rs.raf.banka2_bek.order.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -7,6 +8,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import rs.raf.banka2_bek.account.model.Account;
 import rs.raf.banka2_bek.account.repository.AccountRepository;
 import rs.raf.banka2_bek.order.dto.CreateOrderDto;
@@ -25,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("FundsVerificationService")
 class FundsVerificationServiceTest {
 
@@ -33,6 +37,12 @@ class FundsVerificationServiceTest {
 
     @InjectMocks
     private FundsVerificationService service;
+
+    @BeforeEach
+    void forwardRoleAwareToLegacyLookup() {
+        when(portfolioRepository.findByUserIdAndUserRole(anyLong(), anyString()))
+                .thenAnswer(inv -> portfolioRepository.findByUserId(inv.getArgument(0)));
+    }
 
     private Account accountWithBalance(BigDecimal balance, BigDecimal availableBalance) {
         Account acc = new Account();

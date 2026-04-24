@@ -29,18 +29,22 @@ public class TaxRecord {
     private String userType; // CLIENT or EMPLOYEE
 
     @Column(name = "total_profit", nullable = false, precision = 18, scale = 4)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal totalProfit = BigDecimal.ZERO;
 
     @Column(name = "tax_owed", nullable = false, precision = 18, scale = 4)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal taxOwed = BigDecimal.ZERO;
 
     @Column(name = "tax_paid", nullable = false, precision = 18, scale = 4)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal taxPaid = BigDecimal.ZERO;
 
     @Column(nullable = false, length = 10)
+    @org.hibernate.annotations.ColumnDefault("'RSD'")
     @Builder.Default
     private String currency = "RSD";
 

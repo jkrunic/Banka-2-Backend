@@ -7,7 +7,7 @@
 --   Zaposleni (employees tabela):      Zaposleni12
 -- ============================================================
 
-SET sql_mode='';
+-- (MySQL sql_mode reset uklonjen — PostgreSQL)
 
 -- Sacekaj da Hibernate kreira tabele (ddl-auto=update)
 -- Ovaj fajl se izvrsava posle kreiranja baze
@@ -47,8 +47,7 @@ VALUES
   -- Neaktivan klijent (za testiranje)
   ('Nemanja', 'Savić', 'nemanja.savic@gmail.com',
    '$2b$10$FUjcSzK7CZKeX53YVU4JjeOIXLt5axbipO85OlQqw5Dopg47zfgRG',
-   'nemanja.savic', '+381 62 777 8899', 'Terazije 5, Beograd', 0, 'CLIENT')
-ON DUPLICATE KEY UPDATE email = email;
+   'nemanja.savic', '+381 62 777 8899', 'Terazije 5, Beograd', 0, 'CLIENT');
 
 
 -- ============================================================
@@ -98,22 +97,20 @@ VALUES
    '+381 60 500 6000', 'Železnička 15, Niš', 'vuk.obradovic',
    '$2b$10$g8WmJQ5QRHkJy59X5wxYf.Cfn5K9904fSiLY5QHUvCKfgOBLsDlAS',
    'c2VlZF9zYWx0XzAwMDVfXw==',
-   'Supervisor', 'Operations', 0)
-ON DUPLICATE KEY UPDATE email = email;
+   'Supervisor', 'Operations', 0);
 
 -- ============================================================
 -- CURRENCIES (valute koje banka podrzava)
 -- ============================================================
 INSERT INTO currencies (id, code, name, symbol, country, description, active) VALUES
-(1, 'EUR', 'Euro', '€', 'European Union', 'Euro – official currency of the Eurozone', true),
-(2, 'CHF', 'Swiss Franc', 'CHF', 'Switzerland', 'Swiss Franc – currency of Switzerland', true),
-(3, 'USD', 'US Dollar', '$', 'United States', 'US Dollar – currency of the United States', true),
-(4, 'GBP', 'British Pound', '£', 'United Kingdom', 'British Pound – currency of the UK', true),
-(5, 'JPY', 'Japanese Yen', '¥', 'Japan', 'Japanese Yen – currency of Japan', true),
-(6, 'CAD', 'Canadian Dollar', '$', 'Canada', 'Canadian Dollar – currency of Canada', true),
-(7, 'AUD', 'Australian Dollar', '$', 'Australia', 'Australian Dollar – currency of Australia', true),
-(8, 'RSD', 'Serbian Dinar', 'RSD', 'Serbia', 'Serbian Dinar – currency of Serbia', true)
-ON DUPLICATE KEY UPDATE code = code;
+(1, 'EUR', 'Euro', '€', 'European Union', 'Euro – official currency of the Eurozone', 1),
+(2, 'CHF', 'Swiss Franc', 'CHF', 'Switzerland', 'Swiss Franc – currency of Switzerland', 1),
+(3, 'USD', 'US Dollar', '$', 'United States', 'US Dollar – currency of the United States', 1),
+(4, 'GBP', 'British Pound', '£', 'United Kingdom', 'British Pound – currency of the UK', 1),
+(5, 'JPY', 'Japanese Yen', '¥', 'Japan', 'Japanese Yen – currency of Japan', 1),
+(6, 'CAD', 'Canadian Dollar', '$', 'Canada', 'Canadian Dollar – currency of Canada', 1),
+(7, 'AUD', 'Australian Dollar', '$', 'Australia', 'Australian Dollar – currency of Australia', 1),
+(8, 'RSD', 'Serbian Dinar', 'RSD', 'Serbia', 'Serbian Dinar – currency of Serbia', 1);
 
 -- ============================================================
 -- EMPLOYEE PERMISSIONS
@@ -258,8 +255,7 @@ VALUES
     ('Ana', 'Stojanović', '1997-06-15', 'F', 'ana.stojanovic@hotmail.com',
      '+381 69 666 7788', 'Đorđa Stanojevića 12, Beograd',
      '$2b$10$FUjcSzK7CZKeX53YVU4JjeOIXLt5axbipO85OlQqw5Dopg47zfgRG',
-     'c2VlZF9jbGllbnRfMDRf', 1, NOW())
-    ON DUPLICATE KEY UPDATE email = email;
+     'c2VlZF9jbGllbnRfMDRf', 1, NOW());
 
 
 -- ============================================================
@@ -274,8 +270,7 @@ VALUES
      NULL, 1, 0, NOW()),
     (2, 'Green Food AD', '87654321', '987654321', '10.10',
      'Industrijska zona bb, Subotica',
-     NULL, 1, 0, NOW())
-    ON DUPLICATE KEY UPDATE name = name;
+     NULL, 1, 0, NOW());
 
 -- ============================================================
 -- AUTHORIZED PERSONS (ovlascena lica za firme)
@@ -383,9 +378,7 @@ VALUES
      800.0000, 800.0000,
      3000.0000, 15000.0000,
      0.0000, 0.0000,
-     0.0000, '2031-09-01', 'ACTIVE', 'Euro račun', NOW())
-
-    ON DUPLICATE KEY UPDATE account_number = account_number;
+     0.0000, '2031-09-01', 'ACTIVE', 'Euro račun', NOW());
 
 
 -- ============================================================
@@ -405,8 +398,7 @@ INSERT INTO companies (id, name, registration_number, tax_number, activity_code,
 VALUES
     (3, 'Banka 2025 Tim 2', '22200022', '222000222', '64.19',
      'Bulevar Kralja Aleksandra 73, Beograd',
-     NULL, 1, 0, NOW())
-    ON DUPLICATE KEY UPDATE name = name;
+     NULL, 1, 0, NOW());
 
 -- Država (Republika Srbija) — poseban entitet za uplatu poreza
 INSERT INTO companies (id, name, registration_number, tax_number, activity_code, address,
@@ -414,8 +406,7 @@ INSERT INTO companies (id, name, registration_number, tax_number, activity_code,
 VALUES
     (4, 'Republika Srbija', '17858459', '100002288', '84.11',
      'Nemanjina 11, Beograd',
-     NULL, 1, 1, NOW())
-    ON DUPLICATE KEY UPDATE name = name;
+     NULL, 1, 1, NOW());
 
 -- Bankini racuni u svim valutama
 INSERT INTO accounts (account_number, account_type, account_subtype, currency_id,
@@ -455,9 +446,7 @@ VALUES
 
     ('222000100000000180', 'BUSINESS', 'STANDARD', 7, NULL, 3, 1,
      5000000.0000, 5000000.0000, 999999999.0000, 999999999.0000,
-     0.0000, 0.0000, 0.0000, '2050-01-01', 'ACTIVE', 'Banka AUD', NOW())
-
-    ON DUPLICATE KEY UPDATE account_number = account_number;
+     0.0000, 0.0000, 0.0000, '2050-01-01', 'ACTIVE', 'Banka AUD', NOW());
 
 -- Tekuci dinarski racun drzave (za uplatu poreza)
 INSERT INTO accounts (account_number, account_type, account_subtype, currency_id,
@@ -469,8 +458,7 @@ INSERT INTO accounts (account_number, account_type, account_subtype, currency_id
 VALUES
     ('222000100000000200', 'CHECKING', 'STANDARD', 8, NULL, 4, 1,
      0.0000, 0.0000, 999999999.0000, 999999999.0000,
-     0.0000, 0.0000, 0.0000, '2050-01-01', 'ACTIVE', 'Republika Srbija - poreski racun', NOW())
-    ON DUPLICATE KEY UPDATE account_number = account_number;
+     0.0000, 0.0000, 0.0000, '2050-01-01', 'ACTIVE', 'Republika Srbija - poreski racun', NOW());
 
 
 -- ============================================================
@@ -505,9 +493,7 @@ VALUES
 
     -- Ana: 1 kartica za youth racun (account_id=11), blokirana za testiranje
     ('4222001111222233', 'Visa Debit', '987', 11, 4,
-     150000.0000, 'BLOCKED', '2026-01-01', '2030-01-01')
-
-    ON DUPLICATE KEY UPDATE card_number = card_number;
+     150000.0000, 'BLOCKED', '2026-01-01', '2030-01-01');
 
 
 -- ============================================================
@@ -546,187 +532,187 @@ AND NOT EXISTS (
 -- LISTINGS (hartije od vrednosti za Celinu 3)
 -- ============================================================
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, base_currency, quote_currency, liquidity,
                       contract_size, contract_unit, settlement_date)
 VALUES (  'AAPL', 'Apple Inc.', 'NASDAQ', 'STOCK',
   189.8400, 190.1200, 189.5600, 54230000, 2.3400, NOW(),
   15500000000, 0.0055, NULL, NULL, NULL, 1, NULL, NULL);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
 VALUES (  'MSFT', 'Microsoft Corp.', 'NASDAQ', 'STOCK',
   415.2600, 415.8000, 414.7200, 22100000, -1.1800, NOW(),
   7430000000, 0.0072, 1);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
 VALUES (  'GOOG', 'Alphabet Inc.', 'NASDAQ', 'STOCK',
   173.4500, 173.9000, 173.0000, 18500000, 0.8700, NOW(),
   12200000000, 0.0000, 1);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
 VALUES (  'TSLA', 'Tesla Inc.', 'NASDAQ', 'STOCK',
   248.9100, 249.5000, 248.3200, 72300000, -5.4300, NOW(),
   3180000000, 0.0000, 1);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
 VALUES (  'AMZN', 'Amazon.com Inc.', 'NASDAQ', 'STOCK',
   186.3200, 186.8000, 185.8400, 35600000, 1.5600, NOW(),
   10300000000, 0.0000, 1);
 
 -- Forex parovi
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
 VALUES (  'EUR/USD', 'Euro / US Dollar', 'FOREX', 'FOREX',
   1.0856, 1.0858, 1.0854, 180000000, 0.0012, NOW(),
   'EUR', 'USD', 'HIGH', 1000);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
 VALUES (  'GBP/USD', 'British Pound / US Dollar', 'FOREX', 'FOREX',
   1.2943, 1.2946, 1.2940, 95000000, -0.0008, NOW(),
   'GBP', 'USD', 'HIGH', 1000);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
 VALUES (  'USD/JPY', 'US Dollar / Japanese Yen', 'FOREX', 'FOREX',
   149.2300, 149.2600, 149.2000, 120000000, 0.4500, NOW(),
   'USD', 'JPY', 'HIGH', 1000);
 
 -- Futures
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       contract_size, contract_unit, settlement_date)
 VALUES (  'CLM26', 'Crude Oil June 2026', 'CME', 'FUTURES',
   68.4500, 68.5200, 68.3800, 312000, -0.8700, NOW(),
   1000, 'Barrel', '2026-06-20');
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       contract_size, contract_unit, settlement_date)
 VALUES (  'GCQ26', 'Gold August 2026', 'CME', 'FUTURES',
   2345.8000, 2346.5000, 2345.1000, 185000, 12.4000, NOW(),
   100, 'Troy Ounce', '2026-08-27');
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       contract_size, contract_unit, settlement_date)
 VALUES (  'SIH26', 'Silver March 2026', 'CME', 'FUTURES',
   27.3500, 27.3900, 27.3100, 64000, 0.1800, NOW(),
   5000, 'Troy Ounce', '2026-03-27');
 
 -- Dodatni stocks (10 novih)
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
 VALUES (  'META', 'Meta Platforms Inc.', 'NASDAQ', 'STOCK',
   500.1200, 500.6200, 499.6200, 18200000, 3.4500, NOW(),
   2560000000, 0.0000, 1);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
 VALUES (  'NVDA', 'NVIDIA Corp.', 'NASDAQ', 'STOCK',
   880.3500, 881.2300, 879.4700, 41500000, 12.6000, NOW(),
   24600000000, 0.0004, 1);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
 VALUES (  'JPM', 'JPMorgan Chase & Co.', 'NYSE', 'STOCK',
   195.4200, 195.6200, 195.2200, 9800000, 1.2300, NOW(),
   2870000000, 0.0245, 1);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
 VALUES (  'V', 'Visa Inc.', 'NYSE', 'STOCK',
   280.7500, 281.0300, 280.4700, 7200000, 0.8500, NOW(),
   2050000000, 0.0076, 1);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
 VALUES (  'JNJ', 'Johnson & Johnson', 'NYSE', 'STOCK',
   155.3200, 155.4800, 155.1600, 6500000, -0.4200, NOW(),
   2410000000, 0.0302, 1);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
 VALUES (  'WMT', 'Walmart Inc.', 'NYSE', 'STOCK',
   60.2500, 60.3100, 60.1900, 8400000, 0.3200, NOW(),
   8050000000, 0.0135, 1);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
 VALUES (  'DIS', 'The Walt Disney Co.', 'NYSE', 'STOCK',
   115.4800, 115.6000, 115.3600, 10200000, -1.1200, NOW(),
   1830000000, 0.0000, 1);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
 VALUES (  'NFLX', 'Netflix Inc.', 'NASDAQ', 'STOCK',
   620.8000, 621.4200, 620.1800, 5300000, 4.5600, NOW(),
   430000000, 0.0000, 1);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
 VALUES (  'BA', 'The Boeing Co.', 'NYSE', 'STOCK',
   180.2300, 180.4100, 180.0500, 12100000, -2.3400, NOW(),
   610000000, 0.0000, 1);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       outstanding_shares, dividend_yield, contract_size)
 VALUES (  'INTC', 'Intel Corp.', 'NASDAQ', 'STOCK',
   30.1500, 30.1800, 30.1200, 28500000, -0.6500, NOW(),
   4180000000, 0.0133, 1);
 
 -- Dodatni forex parovi (5 novih)
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
 VALUES (  'USD/CHF', 'US Dollar / Swiss Franc', 'FOREX', 'FOREX',
   0.8815, 0.8818, 0.8812, 72000000, -0.0023, NOW(),
   'USD', 'CHF', 'HIGH', 1000);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
 VALUES (  'AUD/USD', 'Australian Dollar / US Dollar', 'FOREX', 'FOREX',
   0.6524, 0.6527, 0.6521, 58000000, 0.0015, NOW(),
   'AUD', 'USD', 'MEDIUM', 1000);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
 VALUES (  'USD/CAD', 'US Dollar / Canadian Dollar', 'FOREX', 'FOREX',
   1.3612, 1.3615, 1.3609, 65000000, 0.0031, NOW(),
   'USD', 'CAD', 'HIGH', 1000);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
 VALUES (  'EUR/GBP', 'Euro / British Pound', 'FOREX', 'FOREX',
   0.8523, 0.8526, 0.8520, 42000000, -0.0009, NOW(),
   'EUR', 'GBP', 'HIGH', 1000);
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       base_currency, quote_currency, liquidity, contract_size)
 VALUES (  'EUR/JPY', 'Euro / Japanese Yen', 'FOREX', 'FOREX',
   163.1200, 163.1800, 163.0600, 55000000, 0.5600, NOW(),
   'EUR', 'JPY', 'HIGH', 1000);
 
 -- Dodatni futures (4 nova)
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       contract_size, contract_unit, settlement_date)
 VALUES (  'NGK26', 'Natural Gas May 2026', 'CME', 'FUTURES',
   2.1050, 2.1100, 2.1000, 145000, 0.0350, NOW(),
   10000, 'MMBtu', '2026-05-28');
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       contract_size, contract_unit, settlement_date)
 VALUES (  'ZCN26', 'Corn July 2026', 'CME', 'FUTURES',
   450.2500, 450.7500, 449.7500, 98000, 3.5000, NOW(),
   5000, 'Bushel', '2026-07-14');
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       contract_size, contract_unit, settlement_date)
 VALUES (  'ZWN26', 'Wheat July 2026', 'CME', 'FUTURES',
   580.5000, 581.0800, 579.9200, 72000, -4.2500, NOW(),
   5000, 'Bushel', '2026-07-14');
 
-INSERT IGNORE INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
+INSERT INTO listings (ticker, name, exchange_acronym, listing_type, price, ask, bid, volume, price_change, last_refresh,
                       contract_size, contract_unit, settlement_date)
 VALUES (  'HGK26', 'Copper May 2026', 'CME', 'FUTURES',
   4.2050, 4.2100, 4.2000, 54000, 0.0320, NOW(),
@@ -737,861 +723,872 @@ VALUES (  'HGK26', 'Copper May 2026', 'CME', 'FUTURES',
 -- ============================================================
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 185.20, 186.50, 184.10, -1.30, 48000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 185.20, 186.50, 184.10, -1.30, 48000000
 FROM listings l WHERE l.ticker = 'AAPL'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 186.50, 188.20, 185.80, 1.30, 51000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 186.50, 188.20, 185.80, 1.30, 51000000
 FROM listings l WHERE l.ticker = 'AAPL'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 187.10, 189.00, 186.40, 0.60, 53000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 187.10, 189.00, 186.40, 0.60, 53000000
 FROM listings l WHERE l.ticker = 'AAPL'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 188.40, 190.10, 187.50, 1.30, 55000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 188.40, 190.10, 187.50, 1.30, 55000000
 FROM listings l WHERE l.ticker = 'AAPL'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 187.50, 189.90, 186.80, -0.90, 52000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 187.50, 189.90, 186.80, -0.90, 52000000
 FROM listings l WHERE l.ticker = 'AAPL'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, CURDATE(), 189.84, 190.50, 188.20, 2.34, 54230000
+SELECT l.id, CURRENT_DATE, 189.84, 190.50, 188.20, 2.34, 54230000
 FROM listings l WHERE l.ticker = 'AAPL'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = CURDATE());
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = CURRENT_DATE);
 
 -- EUR/USD istorija
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 1.0830, 1.0865, 1.0810, -0.0015, 175000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 1.0830, 1.0865, 1.0810, -0.0015, 175000000
 FROM listings l WHERE l.ticker = 'EUR/USD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 1.0844, 1.0870, 1.0825, 0.0014, 178000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 1.0844, 1.0870, 1.0825, 0.0014, 178000000
 FROM listings l WHERE l.ticker = 'EUR/USD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 1.0848, 1.0880, 1.0830, 0.0004, 182000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 1.0848, 1.0880, 1.0830, 0.0004, 182000000
 FROM listings l WHERE l.ticker = 'EUR/USD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, CURDATE(), 1.0856, 1.0890, 1.0840, 0.0012, 180000000
+SELECT l.id, CURRENT_DATE, 1.0856, 1.0890, 1.0840, 0.0012, 180000000
 FROM listings l WHERE l.ticker = 'EUR/USD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = CURDATE());
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = CURRENT_DATE);
 
 -- MSFT istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 410.30, 412.50, 409.10, -2.40, 20500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 410.30, 412.50, 409.10, -2.40, 20500000
 FROM listings l WHERE l.ticker = 'MSFT'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 412.80, 414.00, 410.50, 2.50, 21800000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 412.80, 414.00, 410.50, 2.50, 21800000
 FROM listings l WHERE l.ticker = 'MSFT'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 413.50, 415.20, 412.00, 0.70, 22300000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 413.50, 415.20, 412.00, 0.70, 22300000
 FROM listings l WHERE l.ticker = 'MSFT'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 414.90, 416.80, 413.60, 1.40, 21500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 414.90, 416.80, 413.60, 1.40, 21500000
 FROM listings l WHERE l.ticker = 'MSFT'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 416.44, 417.20, 414.50, 1.54, 22100000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 416.44, 417.20, 414.50, 1.54, 22100000
 FROM listings l WHERE l.ticker = 'MSFT'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- GOOG istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 170.20, 171.80, 169.50, 1.10, 17200000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 170.20, 171.80, 169.50, 1.10, 17200000
 FROM listings l WHERE l.ticker = 'GOOG'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 171.50, 172.90, 170.80, 1.30, 18000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 171.50, 172.90, 170.80, 1.30, 18000000
 FROM listings l WHERE l.ticker = 'GOOG'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 172.10, 173.50, 171.20, 0.60, 17800000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 172.10, 173.50, 171.20, 0.60, 17800000
 FROM listings l WHERE l.ticker = 'GOOG'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 172.80, 174.00, 171.90, 0.70, 18500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 172.80, 174.00, 171.90, 0.70, 18500000
 FROM listings l WHERE l.ticker = 'GOOG'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 172.58, 174.20, 172.00, -0.22, 18500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 172.58, 174.20, 172.00, -0.22, 18500000
 FROM listings l WHERE l.ticker = 'GOOG'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- AMZN istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 182.40, 183.80, 181.50, -1.20, 33000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 182.40, 183.80, 181.50, -1.20, 33000000
 FROM listings l WHERE l.ticker = 'AMZN'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 183.50, 185.00, 182.80, 1.10, 34200000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 183.50, 185.00, 182.80, 1.10, 34200000
 FROM listings l WHERE l.ticker = 'AMZN'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 184.20, 185.50, 183.40, 0.70, 35000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 184.20, 185.50, 183.40, 0.70, 35000000
 FROM listings l WHERE l.ticker = 'AMZN'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 185.10, 186.80, 184.30, 0.90, 35600000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 185.10, 186.80, 184.30, 0.90, 35600000
 FROM listings l WHERE l.ticker = 'AMZN'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 184.76, 186.20, 184.00, -0.34, 35600000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 184.76, 186.20, 184.00, -0.34, 35600000
 FROM listings l WHERE l.ticker = 'AMZN'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- TSLA istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 258.40, 262.00, 255.80, 6.20, 68000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 258.40, 262.00, 255.80, 6.20, 68000000
 FROM listings l WHERE l.ticker = 'TSLA'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 255.10, 259.50, 253.20, -3.30, 70500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 255.10, 259.50, 253.20, -3.30, 70500000
 FROM listings l WHERE l.ticker = 'TSLA'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 252.80, 256.00, 251.00, -2.30, 72000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 252.80, 256.00, 251.00, -2.30, 72000000
 FROM listings l WHERE l.ticker = 'TSLA'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 251.50, 254.80, 250.10, -1.30, 71000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 251.50, 254.80, 250.10, -1.30, 71000000
 FROM listings l WHERE l.ticker = 'TSLA'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 254.34, 256.20, 250.80, 2.84, 72300000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 254.34, 256.20, 250.80, 2.84, 72300000
 FROM listings l WHERE l.ticker = 'TSLA'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- META istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 492.30, 495.00, 490.50, -2.80, 16500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 492.30, 495.00, 490.50, -2.80, 16500000
 FROM listings l WHERE l.ticker = 'META'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 494.80, 497.50, 493.10, 2.50, 17200000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 494.80, 497.50, 493.10, 2.50, 17200000
 FROM listings l WHERE l.ticker = 'META'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 496.20, 498.80, 494.50, 1.40, 17800000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 496.20, 498.80, 494.50, 1.40, 17800000
 FROM listings l WHERE l.ticker = 'META'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 497.80, 500.50, 496.00, 1.60, 18200000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 497.80, 500.50, 496.00, 1.60, 18200000
 FROM listings l WHERE l.ticker = 'META'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 496.67, 499.80, 495.20, -1.13, 18200000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 496.67, 499.80, 495.20, -1.13, 18200000
 FROM listings l WHERE l.ticker = 'META'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- NVDA istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 860.50, 865.00, 855.20, -8.30, 38000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 860.50, 865.00, 855.20, -8.30, 38000000
 FROM listings l WHERE l.ticker = 'NVDA'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 864.20, 870.00, 858.50, 3.70, 39500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 864.20, 870.00, 858.50, 3.70, 39500000
 FROM listings l WHERE l.ticker = 'NVDA'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 868.00, 874.50, 863.80, 3.80, 40200000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 868.00, 874.50, 863.80, 3.80, 40200000
 FROM listings l WHERE l.ticker = 'NVDA'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 873.40, 880.00, 868.50, 5.40, 41500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 873.40, 880.00, 868.50, 5.40, 41500000
 FROM listings l WHERE l.ticker = 'NVDA'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 867.75, 878.00, 865.00, -5.65, 41500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 867.75, 878.00, 865.00, -5.65, 41500000
 FROM listings l WHERE l.ticker = 'NVDA'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- JPM istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 192.80, 194.00, 191.50, 0.90, 9200000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 192.80, 194.00, 191.50, 0.90, 9200000
 FROM listings l WHERE l.ticker = 'JPM'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 193.50, 194.80, 192.60, 0.70, 9500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 193.50, 194.80, 192.60, 0.70, 9500000
 FROM listings l WHERE l.ticker = 'JPM'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 194.10, 195.30, 193.20, 0.60, 9600000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 194.10, 195.30, 193.20, 0.60, 9600000
 FROM listings l WHERE l.ticker = 'JPM'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 194.80, 196.00, 193.90, 0.70, 9800000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 194.80, 196.00, 193.90, 0.70, 9800000
 FROM listings l WHERE l.ticker = 'JPM'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 194.19, 195.80, 193.50, -0.61, 9800000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 194.19, 195.80, 193.50, -0.61, 9800000
 FROM listings l WHERE l.ticker = 'JPM'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- V istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 278.20, 279.50, 277.00, -0.60, 6800000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 278.20, 279.50, 277.00, -0.60, 6800000
 FROM listings l WHERE l.ticker = 'V'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 279.10, 280.30, 278.20, 0.90, 7000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 279.10, 280.30, 278.20, 0.90, 7000000
 FROM listings l WHERE l.ticker = 'V'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 279.80, 281.00, 279.00, 0.70, 7100000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 279.80, 281.00, 279.00, 0.70, 7100000
 FROM listings l WHERE l.ticker = 'V'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 280.50, 281.80, 279.60, 0.70, 7200000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 280.50, 281.80, 279.60, 0.70, 7200000
 FROM listings l WHERE l.ticker = 'V'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 279.90, 281.50, 279.20, -0.60, 7200000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 279.90, 281.50, 279.20, -0.60, 7200000
 FROM listings l WHERE l.ticker = 'V'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- JNJ istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 156.80, 157.50, 155.90, 1.20, 6200000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 156.80, 157.50, 155.90, 1.20, 6200000
 FROM listings l WHERE l.ticker = 'JNJ'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 156.30, 157.10, 155.60, -0.50, 6300000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 156.30, 157.10, 155.60, -0.50, 6300000
 FROM listings l WHERE l.ticker = 'JNJ'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 155.90, 156.80, 155.20, -0.40, 6400000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 155.90, 156.80, 155.20, -0.40, 6400000
 FROM listings l WHERE l.ticker = 'JNJ'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 155.50, 156.40, 154.80, -0.40, 6500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 155.50, 156.40, 154.80, -0.40, 6500000
 FROM listings l WHERE l.ticker = 'JNJ'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 155.74, 156.50, 155.00, 0.24, 6500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 155.74, 156.50, 155.00, 0.24, 6500000
 FROM listings l WHERE l.ticker = 'JNJ'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- WMT istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 59.40, 59.90, 59.00, 0.25, 7800000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 59.40, 59.90, 59.00, 0.25, 7800000
 FROM listings l WHERE l.ticker = 'WMT'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 59.70, 60.10, 59.30, 0.30, 8000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 59.70, 60.10, 59.30, 0.30, 8000000
 FROM listings l WHERE l.ticker = 'WMT'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 59.90, 60.30, 59.50, 0.20, 8200000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 59.90, 60.30, 59.50, 0.20, 8200000
 FROM listings l WHERE l.ticker = 'WMT'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 60.10, 60.50, 59.70, 0.20, 8400000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 60.10, 60.50, 59.70, 0.20, 8400000
 FROM listings l WHERE l.ticker = 'WMT'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 59.93, 60.40, 59.60, -0.17, 8400000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 59.93, 60.40, 59.60, -0.17, 8400000
 FROM listings l WHERE l.ticker = 'WMT'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- DIS istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 118.20, 119.50, 117.30, 1.80, 9500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 118.20, 119.50, 117.30, 1.80, 9500000
 FROM listings l WHERE l.ticker = 'DIS'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 117.50, 118.80, 116.80, -0.70, 9800000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 117.50, 118.80, 116.80, -0.70, 9800000
 FROM listings l WHERE l.ticker = 'DIS'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 116.80, 118.00, 116.00, -0.70, 10000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 116.80, 118.00, 116.00, -0.70, 10000000
 FROM listings l WHERE l.ticker = 'DIS'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 116.10, 117.50, 115.50, -0.70, 10200000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 116.10, 117.50, 115.50, -0.70, 10200000
 FROM listings l WHERE l.ticker = 'DIS'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 116.60, 117.80, 115.80, 0.50, 10200000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 116.60, 117.80, 115.80, 0.50, 10200000
 FROM listings l WHERE l.ticker = 'DIS'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- NFLX istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 610.50, 614.00, 608.00, -3.20, 4800000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 610.50, 614.00, 608.00, -3.20, 4800000
 FROM listings l WHERE l.ticker = 'NFLX'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 613.80, 616.50, 611.20, 3.30, 5000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 613.80, 616.50, 611.20, 3.30, 5000000
 FROM listings l WHERE l.ticker = 'NFLX'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 615.20, 618.00, 613.50, 1.40, 5100000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 615.20, 618.00, 613.50, 1.40, 5100000
 FROM listings l WHERE l.ticker = 'NFLX'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 617.50, 621.00, 615.80, 2.30, 5300000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 617.50, 621.00, 615.80, 2.30, 5300000
 FROM listings l WHERE l.ticker = 'NFLX'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 616.24, 620.00, 614.50, -1.26, 5300000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 616.24, 620.00, 614.50, -1.26, 5300000
 FROM listings l WHERE l.ticker = 'NFLX'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- BA istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 184.50, 186.00, 183.00, 2.10, 11000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 184.50, 186.00, 183.00, 2.10, 11000000
 FROM listings l WHERE l.ticker = 'BA'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 183.20, 185.50, 182.00, -1.30, 11500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 183.20, 185.50, 182.00, -1.30, 11500000
 FROM listings l WHERE l.ticker = 'BA'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 182.10, 183.80, 181.00, -1.10, 11800000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 182.10, 183.80, 181.00, -1.10, 11800000
 FROM listings l WHERE l.ticker = 'BA'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 181.30, 183.00, 180.50, -0.80, 12100000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 181.30, 183.00, 180.50, -0.80, 12100000
 FROM listings l WHERE l.ticker = 'BA'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 182.57, 183.50, 180.80, 1.27, 12100000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 182.57, 183.50, 180.80, 1.27, 12100000
 FROM listings l WHERE l.ticker = 'BA'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- INTC istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 31.20, 31.80, 30.80, 0.40, 26000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 31.20, 31.80, 30.80, 0.40, 26000000
 FROM listings l WHERE l.ticker = 'INTC'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 30.90, 31.50, 30.50, -0.30, 27000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 30.90, 31.50, 30.50, -0.30, 27000000
 FROM listings l WHERE l.ticker = 'INTC'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 30.60, 31.20, 30.20, -0.30, 27500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 30.60, 31.20, 30.20, -0.30, 27500000
 FROM listings l WHERE l.ticker = 'INTC'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 30.40, 31.00, 30.00, -0.20, 28500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 30.40, 31.00, 30.00, -0.20, 28500000
 FROM listings l WHERE l.ticker = 'INTC'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 30.80, 31.10, 30.30, 0.40, 28500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 30.80, 31.10, 30.30, 0.40, 28500000
 FROM listings l WHERE l.ticker = 'INTC'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- GBP/USD istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 1.2910, 1.2940, 1.2885, 0.0018, 90000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 1.2910, 1.2940, 1.2885, 0.0018, 90000000
 FROM listings l WHERE l.ticker = 'GBP/USD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 1.2925, 1.2955, 1.2900, 0.0015, 92000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 1.2925, 1.2955, 1.2900, 0.0015, 92000000
 FROM listings l WHERE l.ticker = 'GBP/USD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 1.2938, 1.2960, 1.2910, 0.0013, 93000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 1.2938, 1.2960, 1.2910, 0.0013, 93000000
 FROM listings l WHERE l.ticker = 'GBP/USD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 1.2950, 1.2975, 1.2920, 0.0012, 94000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 1.2950, 1.2975, 1.2920, 0.0012, 94000000
 FROM listings l WHERE l.ticker = 'GBP/USD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 1.2935, 1.2965, 1.2915, -0.0015, 95000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 1.2935, 1.2965, 1.2915, -0.0015, 95000000
 FROM listings l WHERE l.ticker = 'GBP/USD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- USD/JPY istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 150.20, 150.80, 149.60, 0.85, 115000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 150.20, 150.80, 149.60, 0.85, 115000000
 FROM listings l WHERE l.ticker = 'USD/JPY'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 150.60, 151.20, 150.00, 0.40, 117000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 150.60, 151.20, 150.00, 0.40, 117000000
 FROM listings l WHERE l.ticker = 'USD/JPY'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 150.90, 151.50, 150.30, 0.30, 118000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 150.90, 151.50, 150.30, 0.30, 118000000
 FROM listings l WHERE l.ticker = 'USD/JPY'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 150.50, 151.30, 150.00, -0.40, 119000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 150.50, 151.30, 150.00, -0.40, 119000000
 FROM listings l WHERE l.ticker = 'USD/JPY'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 150.78, 151.40, 150.20, 0.28, 120000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 150.78, 151.40, 150.20, 0.28, 120000000
 FROM listings l WHERE l.ticker = 'USD/JPY'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- USD/CHF istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 0.8860, 0.8880, 0.8840, 0.0015, 68000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 0.8860, 0.8880, 0.8840, 0.0015, 68000000
 FROM listings l WHERE l.ticker = 'USD/CHF'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 0.8845, 0.8870, 0.8825, -0.0015, 69000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 0.8845, 0.8870, 0.8825, -0.0015, 69000000
 FROM listings l WHERE l.ticker = 'USD/CHF'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 0.8830, 0.8855, 0.8810, -0.0015, 70000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 0.8830, 0.8855, 0.8810, -0.0015, 70000000
 FROM listings l WHERE l.ticker = 'USD/CHF'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 0.8820, 0.8845, 0.8800, -0.0010, 71000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 0.8820, 0.8845, 0.8800, -0.0010, 71000000
 FROM listings l WHERE l.ticker = 'USD/CHF'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 0.8808, 0.8835, 0.8790, -0.0012, 72000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 0.8808, 0.8835, 0.8790, -0.0012, 72000000
 FROM listings l WHERE l.ticker = 'USD/CHF'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- AUD/USD istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 0.6490, 0.6510, 0.6470, -0.0010, 55000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 0.6490, 0.6510, 0.6470, -0.0010, 55000000
 FROM listings l WHERE l.ticker = 'AUD/USD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 0.6500, 0.6520, 0.6480, 0.0010, 56000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 0.6500, 0.6520, 0.6480, 0.0010, 56000000
 FROM listings l WHERE l.ticker = 'AUD/USD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 0.6508, 0.6530, 0.6490, 0.0008, 57000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 0.6508, 0.6530, 0.6490, 0.0008, 57000000
 FROM listings l WHERE l.ticker = 'AUD/USD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 0.6515, 0.6535, 0.6495, 0.0007, 57500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 0.6515, 0.6535, 0.6495, 0.0007, 57500000
 FROM listings l WHERE l.ticker = 'AUD/USD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 0.6509, 0.6530, 0.6490, -0.0006, 58000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 0.6509, 0.6530, 0.6490, -0.0006, 58000000
 FROM listings l WHERE l.ticker = 'AUD/USD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- USD/CAD istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 1.3560, 1.3585, 1.3535, -0.0020, 62000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 1.3560, 1.3585, 1.3535, -0.0020, 62000000
 FROM listings l WHERE l.ticker = 'USD/CAD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 1.3575, 1.3600, 1.3550, 0.0015, 63000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 1.3575, 1.3600, 1.3550, 0.0015, 63000000
 FROM listings l WHERE l.ticker = 'USD/CAD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 1.3588, 1.3610, 1.3565, 0.0013, 63500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 1.3588, 1.3610, 1.3565, 0.0013, 63500000
 FROM listings l WHERE l.ticker = 'USD/CAD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 1.3598, 1.3620, 1.3575, 0.0010, 64000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 1.3598, 1.3620, 1.3575, 0.0010, 64000000
 FROM listings l WHERE l.ticker = 'USD/CAD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 1.3581, 1.3610, 1.3560, -0.0017, 65000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 1.3581, 1.3610, 1.3560, -0.0017, 65000000
 FROM listings l WHERE l.ticker = 'USD/CAD'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- EUR/GBP istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 0.8545, 0.8560, 0.8530, 0.0012, 40000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 0.8545, 0.8560, 0.8530, 0.0012, 40000000
 FROM listings l WHERE l.ticker = 'EUR/GBP'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 0.8538, 0.8555, 0.8520, -0.0007, 40500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 0.8538, 0.8555, 0.8520, -0.0007, 40500000
 FROM listings l WHERE l.ticker = 'EUR/GBP'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 0.8530, 0.8548, 0.8512, -0.0008, 41000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 0.8530, 0.8548, 0.8512, -0.0008, 41000000
 FROM listings l WHERE l.ticker = 'EUR/GBP'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 0.8525, 0.8540, 0.8508, -0.0005, 41500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 0.8525, 0.8540, 0.8508, -0.0005, 41500000
 FROM listings l WHERE l.ticker = 'EUR/GBP'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 0.8532, 0.8548, 0.8515, 0.0007, 42000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 0.8532, 0.8548, 0.8515, 0.0007, 42000000
 FROM listings l WHERE l.ticker = 'EUR/GBP'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- EUR/JPY istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 162.10, 162.80, 161.50, 0.65, 52000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 162.10, 162.80, 161.50, 0.65, 52000000
 FROM listings l WHERE l.ticker = 'EUR/JPY'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 162.45, 163.10, 161.80, 0.35, 53000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 162.45, 163.10, 161.80, 0.35, 53000000
 FROM listings l WHERE l.ticker = 'EUR/JPY'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 162.70, 163.30, 162.10, 0.25, 53500000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 162.70, 163.30, 162.10, 0.25, 53500000
 FROM listings l WHERE l.ticker = 'EUR/JPY'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 162.90, 163.50, 162.30, 0.20, 54000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 162.90, 163.50, 162.30, 0.20, 54000000
 FROM listings l WHERE l.ticker = 'EUR/JPY'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 162.56, 163.20, 162.00, -0.34, 55000000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 162.56, 163.20, 162.00, -0.34, 55000000
 FROM listings l WHERE l.ticker = 'EUR/JPY'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- CLM26 futures istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 69.80, 70.50, 69.20, 0.95, 295000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 69.80, 70.50, 69.20, 0.95, 295000
 FROM listings l WHERE l.ticker = 'CLM26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 69.50, 70.20, 68.80, -0.30, 300000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 69.50, 70.20, 68.80, -0.30, 300000
 FROM listings l WHERE l.ticker = 'CLM26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 69.10, 69.80, 68.50, -0.40, 305000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 69.10, 69.80, 68.50, -0.40, 305000
 FROM listings l WHERE l.ticker = 'CLM26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 68.80, 69.50, 68.30, -0.30, 308000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 68.80, 69.50, 68.30, -0.30, 308000
 FROM listings l WHERE l.ticker = 'CLM26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 69.32, 69.80, 68.60, 0.52, 312000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 69.32, 69.80, 68.60, 0.52, 312000
 FROM listings l WHERE l.ticker = 'CLM26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- GCQ26 gold futures istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 2325.00, 2332.00, 2318.00, 8.50, 170000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 2325.00, 2332.00, 2318.00, 8.50, 170000
 FROM listings l WHERE l.ticker = 'GCQ26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 2330.50, 2338.00, 2324.00, 5.50, 175000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 2330.50, 2338.00, 2324.00, 5.50, 175000
 FROM listings l WHERE l.ticker = 'GCQ26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 2335.80, 2342.00, 2328.00, 5.30, 178000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 2335.80, 2342.00, 2328.00, 5.30, 178000
 FROM listings l WHERE l.ticker = 'GCQ26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 2340.20, 2348.00, 2333.00, 4.40, 180000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 2340.20, 2348.00, 2333.00, 4.40, 180000
 FROM listings l WHERE l.ticker = 'GCQ26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 2333.40, 2346.00, 2330.00, -6.80, 185000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 2333.40, 2346.00, 2330.00, -6.80, 185000
 FROM listings l WHERE l.ticker = 'GCQ26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- SIH26 silver futures istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 26.80, 27.10, 26.50, -0.25, 58000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 26.80, 27.10, 26.50, -0.25, 58000
 FROM listings l WHERE l.ticker = 'SIH26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 26.95, 27.20, 26.70, 0.15, 59000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 26.95, 27.20, 26.70, 0.15, 59000
 FROM listings l WHERE l.ticker = 'SIH26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 27.10, 27.35, 26.85, 0.15, 60000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 27.10, 27.35, 26.85, 0.15, 60000
 FROM listings l WHERE l.ticker = 'SIH26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 27.20, 27.45, 26.95, 0.10, 62000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 27.20, 27.45, 26.95, 0.10, 62000
 FROM listings l WHERE l.ticker = 'SIH26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 27.17, 27.40, 26.90, -0.03, 64000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 27.17, 27.40, 26.90, -0.03, 64000
 FROM listings l WHERE l.ticker = 'SIH26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- NGK26 natural gas futures istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 2.0500, 2.0800, 2.0200, -0.0200, 138000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 2.0500, 2.0800, 2.0200, -0.0200, 138000
 FROM listings l WHERE l.ticker = 'NGK26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 2.0650, 2.0900, 2.0400, 0.0150, 140000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 2.0650, 2.0900, 2.0400, 0.0150, 140000
 FROM listings l WHERE l.ticker = 'NGK26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 2.0750, 2.1000, 2.0500, 0.0100, 141000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 2.0750, 2.1000, 2.0500, 0.0100, 141000
 FROM listings l WHERE l.ticker = 'NGK26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 2.0850, 2.1100, 2.0600, 0.0100, 143000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 2.0850, 2.1100, 2.0600, 0.0100, 143000
 FROM listings l WHERE l.ticker = 'NGK26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 2.0700, 2.1050, 2.0500, -0.0150, 145000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 2.0700, 2.1050, 2.0500, -0.0150, 145000
 FROM listings l WHERE l.ticker = 'NGK26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- ZCN26 corn futures istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 444.50, 447.00, 442.00, 2.50, 92000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 444.50, 447.00, 442.00, 2.50, 92000
 FROM listings l WHERE l.ticker = 'ZCN26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 445.80, 448.00, 443.50, 1.30, 93000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 445.80, 448.00, 443.50, 1.30, 93000
 FROM listings l WHERE l.ticker = 'ZCN26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 447.20, 449.50, 445.00, 1.40, 94000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 447.20, 449.50, 445.00, 1.40, 94000
 FROM listings l WHERE l.ticker = 'ZCN26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 448.80, 451.00, 446.50, 1.60, 96000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 448.80, 451.00, 446.50, 1.60, 96000
 FROM listings l WHERE l.ticker = 'ZCN26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 446.75, 450.00, 445.00, -2.05, 98000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 446.75, 450.00, 445.00, -2.05, 98000
 FROM listings l WHERE l.ticker = 'ZCN26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- ZWN26 wheat futures istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 588.00, 592.00, 585.00, 3.50, 68000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 588.00, 592.00, 585.00, 3.50, 68000
 FROM listings l WHERE l.ticker = 'ZWN26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 586.50, 590.00, 583.50, -1.50, 69000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 586.50, 590.00, 583.50, -1.50, 69000
 FROM listings l WHERE l.ticker = 'ZWN26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 584.80, 588.00, 582.00, -1.70, 70000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 584.80, 588.00, 582.00, -1.70, 70000
 FROM listings l WHERE l.ticker = 'ZWN26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 583.00, 586.50, 580.50, -1.80, 71000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 583.00, 586.50, 580.50, -1.80, 71000
 FROM listings l WHERE l.ticker = 'ZWN26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 584.75, 587.00, 581.50, 1.75, 72000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 584.75, 587.00, 581.50, 1.75, 72000
 FROM listings l WHERE l.ticker = 'ZWN26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- HGK26 copper futures istorija (5 dana)
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 4.1500, 4.1800, 4.1200, 0.0250, 50000
+SELECT l.id, (CURRENT_DATE - INTERVAL '5 days'), 4.1500, 4.1800, 4.1200, 0.0250, 50000
 FROM listings l WHERE l.ticker = 'HGK26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 5 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '5 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 4 DAY), 4.1650, 4.1900, 4.1400, 0.0150, 51000
+SELECT l.id, (CURRENT_DATE - INTERVAL '4 days'), 4.1650, 4.1900, 4.1400, 0.0150, 51000
 FROM listings l WHERE l.ticker = 'HGK26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 4 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '4 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 3 DAY), 4.1780, 4.2050, 4.1550, 0.0130, 52000
+SELECT l.id, (CURRENT_DATE - INTERVAL '3 days'), 4.1780, 4.2050, 4.1550, 0.0130, 52000
 FROM listings l WHERE l.ticker = 'HGK26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 3 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '3 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 2 DAY), 4.1900, 4.2150, 4.1650, 0.0120, 53000
+SELECT l.id, (CURRENT_DATE - INTERVAL '2 days'), 4.1900, 4.2150, 4.1650, 0.0120, 53000
 FROM listings l WHERE l.ticker = 'HGK26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 2 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '2 days'));
 
 INSERT INTO listing_daily_prices (listing_id, date, price, high, low, price_change, volume)
-SELECT l.id, DATE_SUB(CURDATE(), INTERVAL 1 DAY), 4.1730, 4.2100, 4.1600, -0.0170, 54000
+SELECT l.id, (CURRENT_DATE - INTERVAL '1 days'), 4.1730, 4.2100, 4.1600, -0.0170, 54000
 FROM listings l WHERE l.ticker = 'HGK26'
-AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = DATE_SUB(CURDATE(), INTERVAL 1 DAY));
+AND NOT EXISTS (SELECT 1 FROM listing_daily_prices WHERE listing_id = l.id AND date = (CURRENT_DATE - INTERVAL '1 days'));
 
 -- ============================================================
 -- ACTUARY INFO (aktuarski podaci za zaposlene)
 -- ============================================================
 
 INSERT INTO actuary_info (employee_id, actuary_type, daily_limit, used_limit, need_approval)
-SELECT e.id, 'SUPERVISOR', NULL, 0, false
+SELECT e.id, 'SUPERVISOR', NULL, 0, 0
 FROM employees e WHERE e.email = 'nikola.milenkovic@banka.rs'
 AND NOT EXISTS (SELECT 1 FROM actuary_info WHERE employee_id = e.id);
 
 INSERT INTO actuary_info (employee_id, actuary_type, daily_limit, used_limit, need_approval)
-SELECT e.id, 'AGENT', 100000, 0, false
+SELECT e.id, 'AGENT', 100000, 0, 0
 FROM employees e WHERE e.email = 'tamara.pavlovic@banka.rs'
 AND NOT EXISTS (SELECT 1 FROM actuary_info WHERE employee_id = e.id);
 
 INSERT INTO actuary_info (employee_id, actuary_type, daily_limit, used_limit, need_approval)
-SELECT e.id, 'AGENT', 50000, 15000, true
+SELECT e.id, 'AGENT', 50000, 15000, 1
 FROM employees e WHERE e.email = 'nemanja.savic@banka.rs'
 AND NOT EXISTS (SELECT 1 FROM actuary_info WHERE employee_id = e.id);
 
 -- ============================================================
 -- PORTFOLIOS (hartije od vrednosti u vlasnistvu korisnika)
 -- ============================================================
--- Stefan Jovanovic poseduje akcije AAPL, MSFT, TSLA i futures CLM26
+-- BITNO: user_id je clients.id (za CLIENT) ili employees.id (za EMPLOYEE).
+-- Dvoje se dodatno razdvaja kolonom user_role — clients i employees
+-- imaju nezavisne auto_increment sekvence koje se preklapaju.
+--
+-- clients.id: 1=Stefan, 2=Milica, 3=Lazar, 4=Ana
+-- employees.id (samo agenti imaju portfolio): 4=Tamara, 5=Djordje, 6=Maja
+-- ============================================================
 
--- Stefan drzi 50 AAPL akcija (kupljeno po $145.00)
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT u.id, l.id, l.ticker, l.name, 'STOCK', 50, 145.0000, 0, NOW()
-FROM users u, listings l
-WHERE u.email = 'stefan.jovanovic@gmail.com' AND l.ticker = 'AAPL'
-AND NOT EXISTS (
-    SELECT 1 FROM portfolios p WHERE p.user_id = u.id AND p.listing_id = l.id
-);
+-- ---------- STEFAN (client_id=1) ----------
+-- AAPL 50 @ 145 (solid profit), MSFT 30 @ 380.5 (public 10 za OTC demo),
+-- TSLA 20 @ 265 (u gubitku), CLM26 futures 5
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 1, 'CLIENT', l.id, l.ticker, l.name, 'STOCK', 50, 145.0000, 0, NOW()
+FROM listings l WHERE l.ticker = 'AAPL'
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 1 AND p.user_role = 'CLIENT' AND p.listing_id = l.id);
 
--- Stefan drzi 30 MSFT akcija (kupljeno po $380.50)
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT u.id, l.id, l.ticker, l.name, 'STOCK', 30, 380.5000, 10, NOW()
-FROM users u, listings l
-WHERE u.email = 'stefan.jovanovic@gmail.com' AND l.ticker = 'MSFT'
-AND NOT EXISTS (
-    SELECT 1 FROM portfolios p WHERE p.user_id = u.id AND p.listing_id = l.id
-);
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 1, 'CLIENT', l.id, l.ticker, l.name, 'STOCK', 30, 380.5000, 10, NOW()
+FROM listings l WHERE l.ticker = 'MSFT'
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 1 AND p.user_role = 'CLIENT' AND p.listing_id = l.id);
 
--- Stefan drzi 20 TSLA akcija (kupljeno po $265.00 — u gubitku)
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT u.id, l.id, l.ticker, l.name, 'STOCK', 20, 265.0000, 0, NOW()
-FROM users u, listings l
-WHERE u.email = 'stefan.jovanovic@gmail.com' AND l.ticker = 'TSLA'
-AND NOT EXISTS (
-    SELECT 1 FROM portfolios p WHERE p.user_id = u.id AND p.listing_id = l.id
-);
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 1, 'CLIENT', l.id, l.ticker, l.name, 'STOCK', 20, 265.0000, 0, NOW()
+FROM listings l WHERE l.ticker = 'TSLA'
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 1 AND p.user_role = 'CLIENT' AND p.listing_id = l.id);
 
--- Stefan drzi 5 CLM26 futures ugovora (kupljeno po $65.20)
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT u.id, l.id, l.ticker, l.name, 'FUTURES', 5, 65.2000, 0, NOW()
-FROM users u, listings l
-WHERE u.email = 'stefan.jovanovic@gmail.com' AND l.ticker = 'CLM26'
-AND NOT EXISTS (
-    SELECT 1 FROM portfolios p WHERE p.user_id = u.id AND p.listing_id = l.id
-);
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 1, 'CLIENT', l.id, l.ticker, l.name, 'FUTURES', 5, 65.2000, 0, NOW()
+FROM listings l WHERE l.ticker = 'CLM26'
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 1 AND p.user_role = 'CLIENT' AND p.listing_id = l.id);
 
--- Milica drzi 100 GOOG akcija (kupljeno po $155.00)
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT u.id, l.id, l.ticker, l.name, 'STOCK', 100, 155.0000, 25, NOW()
-FROM users u, listings l
-WHERE u.email = 'milica.nikolic@gmail.com' AND l.ticker = 'GOOG'
-AND NOT EXISTS (
-    SELECT 1 FROM portfolios p WHERE p.user_id = u.id AND p.listing_id = l.id
-);
+-- ---------- MILICA (client_id=2) ----------
+-- GOOG 100 @ 155 (public 30 — glavni OTC izlog), AMZN 15 @ 172.8 (public 5)
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 2, 'CLIENT', l.id, l.ticker, l.name, 'STOCK', 100, 155.0000, 30, NOW()
+FROM listings l WHERE l.ticker = 'GOOG'
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 2 AND p.user_role = 'CLIENT' AND p.listing_id = l.id);
 
--- Milica drzi 15 AMZN akcija (kupljeno po $172.80)
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT u.id, l.id, l.ticker, l.name, 'STOCK', 15, 172.8000, 0, NOW()
-FROM users u, listings l
-WHERE u.email = 'milica.nikolic@gmail.com' AND l.ticker = 'AMZN'
-AND NOT EXISTS (
-    SELECT 1 FROM portfolios p WHERE p.user_id = u.id AND p.listing_id = l.id
-);
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 2, 'CLIENT', l.id, l.ticker, l.name, 'STOCK', 15, 172.8000, 5, NOW()
+FROM listings l WHERE l.ticker = 'AMZN'
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 2 AND p.user_role = 'CLIENT' AND p.listing_id = l.id);
+
+-- ---------- LAZAR (client_id=3) ----------
+-- TSLA 15 @ 255 (public 8 — OTC TSLA izlog), GOOG 30 @ 160 (public 0)
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 3, 'CLIENT', l.id, l.ticker, l.name, 'STOCK', 15, 255.0000, 8, NOW()
+FROM listings l WHERE l.ticker = 'TSLA'
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 3 AND p.user_role = 'CLIENT' AND p.listing_id = l.id);
+
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 3, 'CLIENT', l.id, l.ticker, l.name, 'STOCK', 30, 160.0000, 0, NOW()
+FROM listings l WHERE l.ticker = 'GOOG'
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 3 AND p.user_role = 'CLIENT' AND p.listing_id = l.id);
+
+-- ---------- ANA (client_id=4) ----------
+-- NVDA 5 @ 810 (public 3), AAPL 10 @ 175 (public 5 — AAPL OTC izlog)
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 4, 'CLIENT', l.id, l.ticker, l.name, 'STOCK', 5, 810.0000, 3, NOW()
+FROM listings l WHERE l.ticker = 'NVDA'
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 4 AND p.user_role = 'CLIENT' AND p.listing_id = l.id);
+
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 4, 'CLIENT', l.id, l.ticker, l.name, 'STOCK', 10, 175.0000, 5, NOW()
+FROM listings l WHERE l.ticker = 'AAPL'
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 4 AND p.user_role = 'CLIENT' AND p.listing_id = l.id);
 
 
 -- ============================================================
@@ -1621,7 +1618,7 @@ SELECT
     180.0000,
     0.2500,
     5,
-    CURDATE() + INTERVAL 15 DAY,
+    CURRENT_DATE + INTERVAL '15 days',
     100,
     12.5000,
     13.0000,
@@ -1657,7 +1654,7 @@ SELECT
     210.0000,
     0.2500,
     5,
-    CURDATE() + INTERVAL 15 DAY,
+    CURRENT_DATE + INTERVAL '15 days',
     100,
     4.2000,
     4.5000,
@@ -1693,7 +1690,7 @@ SELECT
     180.0000,
     0.2500,
     5,
-    CURDATE() - INTERVAL 1 DAY,
+    CURRENT_DATE - INTERVAL '1 days',
     100,
     10.5000,
     10.9000,
@@ -1729,7 +1726,7 @@ SELECT
     170.0000,
     0.2500,
     0,
-    CURDATE() + INTERVAL 15 DAY,
+    CURRENT_DATE + INTERVAL '15 days',
     100,
     15.2000,
     15.7000,
@@ -1765,7 +1762,7 @@ SELECT
     430.0000,
     0.2300,
     4,
-    CURDATE() + INTERVAL 20 DAY,
+    CURRENT_DATE + INTERVAL '20 days',
     100,
     14.8000,
     15.3000,
@@ -1801,7 +1798,7 @@ SELECT
     390.0000,
     0.2300,
     4,
-    CURDATE() + INTERVAL 20 DAY,
+    CURRENT_DATE + INTERVAL '20 days',
     100,
     5.1000,
     5.4000,
@@ -1842,7 +1839,7 @@ INSERT INTO options (
 )
 SELECT
     l.id, 'CALL', 180.0000, 0.2500, 5,
-    CURDATE() + INTERVAL 15 DAY, 100,
+    CURRENT_DATE + INTERVAL '15 days', 100,
     12.5000, 13.0000, 12.0000, 1200,
     'AAPL_TEST_CALL_ITM', NOW()
 FROM listings l
@@ -1865,7 +1862,7 @@ INSERT INTO options (
 )
 SELECT
     l.id, 'CALL', 210.0000, 0.2500, 5,
-    CURDATE() + INTERVAL 15 DAY, 100,
+    CURRENT_DATE + INTERVAL '15 days', 100,
     4.2000, 4.5000, 4.0000, 950,
     'AAPL_TEST_CALL_OTM', NOW()
 FROM listings l
@@ -1888,7 +1885,7 @@ INSERT INTO options (
 )
 SELECT
     l.id, 'CALL', 180.0000, 0.2500, 5,
-    CURDATE() - INTERVAL 1 DAY, 100,
+    CURRENT_DATE - INTERVAL '1 days', 100,
     10.5000, 10.9000, 10.1000, 700,
     'AAPL_TEST_CALL_EXPIRED', NOW()
 FROM listings l
@@ -1911,7 +1908,7 @@ INSERT INTO options (
 )
 SELECT
     l.id, 'CALL', 170.0000, 0.2500, 0,
-    CURDATE() + INTERVAL 15 DAY, 100,
+    CURRENT_DATE + INTERVAL '15 days', 100,
     15.2000, 15.7000, 14.8000, 300,
     'AAPL_TEST_CALL_ZERO_OI', NOW()
 FROM listings l
@@ -1934,7 +1931,7 @@ INSERT INTO options (
 )
 SELECT
     l.id, 'PUT', 430.0000, 0.2300, 4,
-    CURDATE() + INTERVAL 20 DAY, 100,
+    CURRENT_DATE + INTERVAL '20 days', 100,
     14.8000, 15.3000, 14.2000, 1100,
     'MSFT_TEST_PUT_ITM', NOW()
 FROM listings l
@@ -1957,7 +1954,7 @@ INSERT INTO options (
 )
 SELECT
     l.id, 'PUT', 390.0000, 0.2300, 4,
-    CURDATE() + INTERVAL 20 DAY, 100,
+    CURRENT_DATE + INTERVAL '20 days', 100,
     5.1000, 5.4000, 4.9000, 800,
     'MSFT_TEST_PUT_OTM', NOW()
 FROM listings l
@@ -1981,62 +1978,85 @@ WHERE ticker IN (
 -- Admini su supervizori (svaki admin = supervizor po specifikaciji)
 -- employee_id: 1=Marko, 2=Jelena (novi), 3=Nikola, 4=Tamara, 5=Djordje, 6=Maja, 7=Vuk
 -- Marko (employee 1) i Jelena (employee 2) dodati kao supervizori
-INSERT IGNORE INTO actuary_info (actuary_type, daily_limit, need_approval, used_limit, employee_id)
+INSERT INTO actuary_info (actuary_type, daily_limit, need_approval, used_limit, employee_id)
 SELECT 'SUPERVISOR', NULL, 0, 0.00, id FROM employees WHERE email = 'marko.petrovic@banka.rs';
 
-INSERT IGNORE INTO actuary_info (actuary_type, daily_limit, need_approval, used_limit, employee_id)
+INSERT INTO actuary_info (actuary_type, daily_limit, need_approval, used_limit, employee_id)
 SELECT 'SUPERVISOR', NULL, 0, 0.00, id FROM employees WHERE email = 'jelena.djordjevic@banka.rs';
 
 -- Dodaj vise agenata (Djordje=agent, Maja=agent)
-INSERT IGNORE INTO actuary_info (actuary_type, daily_limit, need_approval, used_limit, employee_id)
+INSERT INTO actuary_info (actuary_type, daily_limit, need_approval, used_limit, employee_id)
 SELECT 'AGENT', 150000.00, 0, 25000.00, id FROM employees WHERE email = 'djordje.jankovic@banka.rs';
 
-INSERT IGNORE INTO actuary_info (actuary_type, daily_limit, need_approval, used_limit, employee_id)
+INSERT INTO actuary_info (actuary_type, daily_limit, need_approval, used_limit, employee_id)
 SELECT 'AGENT', 200000.00, 1, 180000.00, id FROM employees WHERE email = 'maja.ristic@banka.rs';
 
 -- ============================================================
 -- ORDERS (sample nalozi za prikaz)
 -- ============================================================
--- user_id 3 = Stefan (CLIENT), user_id 1 = Marko (ADMIN)
--- listing_id 1 = AAPL, 2 = MSFT, 9 = CLM26
+-- BITNO: user_id = clients.id (za CLIENT) ili employees.id (za EMPLOYEE).
+--   clients: 1=Stefan, 2=Milica, 3=Lazar, 4=Ana
+--   employees (agenti): 4=Tamara, 5=Djordje; supervizor: 3=Nikola
+-- listing_id 1=AAPL, 2=MSFT, 3=GOOG, 4=TSLA, 5=AMZN, 6=NVDA, 9=CLM26
 
-INSERT IGNORE INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
+INSERT INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
                            contract_size, created_at, direction, is_done, last_modification,
                            limit_value, is_margin, order_type, price_per_unit, quantity,
                            remaining_portions, status, stop_value, user_id, user_role, listing_id)
 VALUES
-    -- Stefan kupio 50 AAPL - DONE
-    (1, 0, 0, 'No need for approval', 9250.0000, 1, DATE_SUB(NOW(), INTERVAL 5 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 5 DAY), NULL, 0, 'MARKET', 185.0000,
-     50, 0, 'DONE', NULL, 3, 'CLIENT', 1),
-    -- Stefan kupio 30 MSFT - DONE
-    (1, 0, 0, 'No need for approval', 11415.0000, 1, DATE_SUB(NOW(), INTERVAL 4 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 4 DAY), NULL, 0, 'MARKET', 380.5000,
-     30, 0, 'DONE', NULL, 3, 'CLIENT', 2),
-    -- Stefan - LIMIT BUY GOOG - APPROVED, u toku
-    (1, 0, 0, 'No need for approval', 5200.0000, 1, DATE_SUB(NOW(), INTERVAL 1 DAY),
+    -- STEFAN (client 1) — solidno istorijsko poslovanje
+    (1, 0, 0, 'No need for approval', 9250.0000, 1, (NOW() - INTERVAL '14 days'),
+     'BUY', 1, (NOW() - INTERVAL '14 days'), NULL, 0, 'MARKET', 185.0000,
+     50, 0, 'DONE', NULL, 1, 'CLIENT', 1),                       -- BUY 50 AAPL DONE
+    (1, 0, 0, 'No need for approval', 11415.0000, 1, (NOW() - INTERVAL '10 days'),
+     'BUY', 1, (NOW() - INTERVAL '10 days'), NULL, 0, 'MARKET', 380.5000,
+     30, 0, 'DONE', NULL, 1, 'CLIENT', 2),                       -- BUY 30 MSFT DONE
+    (1, 0, 0, 'No need for approval', 5300.0000, 1, (NOW() - INTERVAL '6 days'),
+     'BUY', 1, (NOW() - INTERVAL '6 days'), NULL, 0, 'MARKET', 265.0000,
+     20, 0, 'DONE', NULL, 1, 'CLIENT', 4),                       -- BUY 20 TSLA DONE (u gubitku)
+    (1, 0, 0, 'No need for approval', 5200.0000, 1, (NOW() - INTERVAL '2 days'),
      'BUY', 0, NOW(), 170.0000, 0, 'LIMIT', 173.0000,
-     30, 15, 'APPROVED', NULL, 3, 'CLIENT', 3),
-    -- Stefan - SELL AAPL - PENDING (AON)
+     30, 15, 'APPROVED', NULL, 1, 'CLIENT', 3),                  -- LIMIT BUY 30 GOOG aktivan
     (1, 0, 1, NULL, 4750.0000, 1, NOW(),
      'SELL', 0, NOW(), NULL, 0, 'MARKET', 190.0000,
-     25, 25, 'PENDING', NULL, 3, 'CLIENT', 1),
-    -- Tamara (agent, employee 2) - BUY TSLA - PENDING (needs supervisor approval)
-    (NULL, 0, 0, NULL, 12500.0000, 1, NOW(),
-     'BUY', 0, NOW(), NULL, 0, 'MARKET', 250.0000,
-     50, 50, 'PENDING', NULL, 2, 'EMPLOYEE', 4),
-    -- Tamara - STOP-LIMIT SELL MSFT - APPROVED
-    (NULL, 1, 0, 'Nikola Milenkovic', 6000.0000, 1, DATE_SUB(NOW(), INTERVAL 2 DAY),
+     25, 25, 'PENDING', NULL, 1, 'CLIENT', 1),                   -- SELL AAPL AON PENDING (ceka supervizora)
+
+    -- MILICA (client 2)
+    (4, 0, 0, 'No need for approval', 15500.0000, 1, (NOW() - INTERVAL '8 days'),
+     'BUY', 1, (NOW() - INTERVAL '8 days'), NULL, 0, 'MARKET', 155.0000,
+     100, 0, 'DONE', NULL, 2, 'CLIENT', 3),                      -- BUY 100 GOOG DONE
+    (4, 0, 0, 'No need for approval', 2592.0000, 1, (NOW() - INTERVAL '3 days'),
+     'BUY', 1, (NOW() - INTERVAL '3 days'), NULL, 0, 'MARKET', 172.8000,
+     15, 0, 'DONE', NULL, 2, 'CLIENT', 5),                       -- BUY 15 AMZN DONE
+
+    -- LAZAR (client 3)
+    (7, 0, 0, 'No need for approval', 3825.0000, 1, (NOW() - INTERVAL '12 days'),
+     'BUY', 1, (NOW() - INTERVAL '12 days'), NULL, 0, 'MARKET', 255.0000,
+     15, 0, 'DONE', NULL, 3, 'CLIENT', 4),                       -- BUY 15 TSLA DONE
+    (7, 0, 0, 'No need for approval', 4800.0000, 1, (NOW() - INTERVAL '5 days'),
+     'BUY', 1, (NOW() - INTERVAL '5 days'), NULL, 0, 'MARKET', 160.0000,
+     30, 0, 'DONE', NULL, 3, 'CLIENT', 3),                       -- BUY 30 GOOG DONE
+
+    -- ANA (client 4)
+    (10, 0, 0, 'No need for approval', 4050.0000, 1, (NOW() - INTERVAL '9 days'),
+     'BUY', 1, (NOW() - INTERVAL '9 days'), NULL, 0, 'MARKET', 810.0000,
+     5, 0, 'DONE', NULL, 4, 'CLIENT', 6),                        -- BUY 5 NVDA DONE
+    (10, 0, 0, 'No need for approval', 1750.0000, 1, (NOW() - INTERVAL '4 days'),
+     'BUY', 1, (NOW() - INTERVAL '4 days'), NULL, 0, 'MARKET', 175.0000,
+     10, 0, 'DONE', NULL, 4, 'CLIENT', 1),                       -- BUY 10 AAPL DONE
+
+    -- TAMARA (employee 4, agent) — treba odobrenje za nove naloge
+    (NULL, 0, 0, NULL, 12500.0000, 1, (NOW() - INTERVAL '1 hours'),
+     'BUY', 0, (NOW() - INTERVAL '1 hours'), NULL, 0, 'MARKET', 250.0000,
+     50, 50, 'PENDING', NULL, 4, 'EMPLOYEE', 4),                 -- BUY TSLA PENDING
+    (NULL, 1, 0, 'Nikola Milenkovic', 6000.0000, 1, (NOW() - INTERVAL '2 days'),
      'SELL', 0, NOW(), 400.0000, 0, 'STOP_LIMIT', 410.0000,
-     15, 10, 'APPROVED', 395.0000, 2, 'EMPLOYEE', 2),
-    -- Djordje (agent, employee 3) - BUY futures CLM26 - DONE
-    (NULL, 0, 0, 'Nikola Milenkovic', 325000.0000, 1000, DATE_SUB(NOW(), INTERVAL 7 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 6 DAY), NULL, 0, 'MARKET', 65.0000,
-     5, 0, 'DONE', NULL, 3, 'EMPLOYEE', 9),
-    -- Milica - BUY GOOG - DONE
-    (4, 0, 0, 'No need for approval', 15500.0000, 1, DATE_SUB(NOW(), INTERVAL 3 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 3 DAY), NULL, 0, 'MARKET', 155.0000,
-     100, 0, 'DONE', NULL, 4, 'CLIENT', 3);
+     15, 10, 'APPROVED', 395.0000, 4, 'EMPLOYEE', 2),            -- STOP-LIMIT SELL MSFT APPROVED
+
+    -- DJORDJE (employee 5, agent)
+    (NULL, 0, 0, 'Nikola Milenkovic', 325000.0000, 1000, (NOW() - INTERVAL '7 days'),
+     'BUY', 1, (NOW() - INTERVAL '6 days'), NULL, 0, 'MARKET', 65.0000,
+     5, 0, 'DONE', NULL, 5, 'EMPLOYEE', 9);                      -- BUY 5 futures CLM26 DONE
 
 -- ============================================================
 -- MARGIN ACCOUNTS
@@ -2048,52 +2068,52 @@ VALUES
 INSERT INTO margin_accounts (bank_participation, created_at, initial_margin, loan_value,
                                     maintenance_margin, status, user_id, account_id)
 SELECT 0.4000, NOW(), 50000.0000, 20000.0000, 25000.0000, 'ACTIVE', 1, 1
-FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM margin_accounts WHERE user_id = 1);
+WHERE NOT EXISTS (SELECT 1 FROM margin_accounts WHERE user_id = 1);
 
 INSERT INTO margin_accounts (bank_participation, created_at, initial_margin, loan_value,
                                     maintenance_margin, status, user_id, account_id)
 SELECT 0.5000, NOW(), 25000.0000, 12500.0000, 12500.0000, 'BLOCKED', 2, 4
-FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM margin_accounts WHERE user_id = 2);
+WHERE NOT EXISTS (SELECT 1 FROM margin_accounts WHERE user_id = 2);
 
 INSERT INTO margin_accounts (bank_participation, created_at, initial_margin, loan_value,
                                     maintenance_margin, status, user_id, account_id)
 SELECT 0.3000, NOW(), 40000.0000, 12000.0000, 20000.0000, 'ACTIVE', 3, 7
-FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM margin_accounts WHERE user_id = 3);
+WHERE NOT EXISTS (SELECT 1 FROM margin_accounts WHERE user_id = 3);
 
 INSERT INTO margin_accounts (bank_participation, created_at, initial_margin, loan_value,
                                     maintenance_margin, status, user_id, account_id)
 SELECT 0.4500, NOW(), 30000.0000, 13500.0000, 15000.0000, 'ACTIVE', 4, 10
-FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM margin_accounts WHERE user_id = 4);
+WHERE NOT EXISTS (SELECT 1 FROM margin_accounts WHERE user_id = 4);
 
 -- Margin transactions: only insert if account has no transactions yet
 INSERT INTO margin_transactions (amount, created_at, description, type, margin_account_id)
-SELECT 50000.00, DATE_SUB(NOW(), INTERVAL 3 DAY), 'Inicijalna uplata', 'DEPOSIT', ma.id
+SELECT 50000.00, (NOW() - INTERVAL '3 days'), 'Inicijalna uplata', 'DEPOSIT', ma.id
 FROM margin_accounts ma WHERE ma.user_id = 1
 AND NOT EXISTS (SELECT 1 FROM margin_transactions mt WHERE mt.margin_account_id = ma.id)
 LIMIT 1;
 
 INSERT INTO margin_transactions (amount, created_at, description, type, margin_account_id)
-SELECT 20000.00, DATE_SUB(NOW(), INTERVAL 1 DAY), 'Isplata', 'WITHDRAWAL', ma.id
+SELECT 20000.00, (NOW() - INTERVAL '1 days'), 'Isplata', 'WITHDRAWAL', ma.id
 FROM margin_accounts ma WHERE ma.user_id = 1
 AND (SELECT COUNT(*) FROM margin_transactions mt WHERE mt.margin_account_id = ma.id) < 2
 LIMIT 1;
 
 -- Margin transactions for Lazar's margin account
 INSERT INTO margin_transactions (amount, created_at, description, type, margin_account_id)
-SELECT 40000.00, DATE_SUB(NOW(), INTERVAL 5 DAY), 'Inicijalna uplata', 'DEPOSIT', ma.id
+SELECT 40000.00, (NOW() - INTERVAL '5 days'), 'Inicijalna uplata', 'DEPOSIT', ma.id
 FROM margin_accounts ma WHERE ma.user_id = 3
 AND NOT EXISTS (SELECT 1 FROM margin_transactions mt WHERE mt.margin_account_id = ma.id)
 LIMIT 1;
 
 INSERT INTO margin_transactions (amount, created_at, description, type, margin_account_id)
-SELECT 10000.00, DATE_SUB(NOW(), INTERVAL 2 DAY), 'Delimicna isplata', 'WITHDRAWAL', ma.id
+SELECT 10000.00, (NOW() - INTERVAL '2 days'), 'Delimicna isplata', 'WITHDRAWAL', ma.id
 FROM margin_accounts ma WHERE ma.user_id = 3
 AND (SELECT COUNT(*) FROM margin_transactions mt WHERE mt.margin_account_id = ma.id) < 2
 LIMIT 1;
 
 -- Margin transactions for Ana's margin account
 INSERT INTO margin_transactions (amount, created_at, description, type, margin_account_id)
-SELECT 30000.00, DATE_SUB(NOW(), INTERVAL 4 DAY), 'Inicijalna uplata', 'DEPOSIT', ma.id
+SELECT 30000.00, (NOW() - INTERVAL '4 days'), 'Inicijalna uplata', 'DEPOSIT', ma.id
 FROM margin_accounts ma WHERE ma.user_id = 4
 AND NOT EXISTS (SELECT 1 FROM margin_transactions mt WHERE mt.margin_account_id = ma.id)
 LIMIT 1;
@@ -2107,7 +2127,7 @@ DELETE FROM tax_records;
 
 -- client_id: 1=Stefan, 2=Milica, 3=Lazar, 4=Ana
 -- employee_id: 1=Marko, 2=Jelena, 3=Nikola, 4=Tamara, 5=Djordje, 6=Maja
-INSERT IGNORE INTO tax_records (calculated_at, currency, tax_owed, tax_paid, total_profit,
+INSERT INTO tax_records (calculated_at, currency, tax_owed, tax_paid, total_profit,
                                 user_id, user_name, user_type)
 VALUES
     (NOW(), 'RSD', 1500.0000, 750.0000, 10000.0000, 1, 'Stefan Jovanovic', 'CLIENT'),
@@ -2124,164 +2144,103 @@ VALUES
 -- ============================================================
 -- PORTFOLIOS ZA ZAPOSLENE (aktuare) — za E2E scenario testiranje
 -- ============================================================
--- Nikola Milenkovic (supervisor, employee_id=3) poseduje AAPL, GOOG, EUR/USD forex
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT 3, l.id, l.ticker, l.name, 'STOCK', 25, 178.5000, 0, NOW()
-FROM listings l WHERE l.ticker = 'AAPL'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 3 AND p.listing_id = l.id);
-
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT 3, l.id, l.ticker, l.name, 'STOCK', 40, 162.0000, 0, NOW()
-FROM listings l WHERE l.ticker = 'GOOG'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 3 AND p.listing_id = l.id);
-
--- Tamara Pavlovic (agent, employee_id=4) poseduje MSFT, TSLA
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT 4, l.id, l.ticker, l.name, 'STOCK', 15, 395.0000, 0, NOW()
+-- ---------- TAMARA (agent, employee_id=4) ----------
+-- MSFT 15 @ 395, TSLA 10 @ 248
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 4, 'EMPLOYEE', l.id, l.ticker, l.name, 'STOCK', 15, 395.0000, 0, NOW()
 FROM listings l WHERE l.ticker = 'MSFT'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 4 AND p.listing_id = l.id);
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 4 AND p.user_role = 'EMPLOYEE' AND p.listing_id = l.id);
 
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT 4, l.id, l.ticker, l.name, 'STOCK', 10, 248.0000, 0, NOW()
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 4, 'EMPLOYEE', l.id, l.ticker, l.name, 'STOCK', 10, 248.0000, 0, NOW()
 FROM listings l WHERE l.ticker = 'TSLA'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 4 AND p.listing_id = l.id);
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 4 AND p.user_role = 'EMPLOYEE' AND p.listing_id = l.id);
 
--- Djordje Jankovic (agent, employee_id=5) poseduje CLM26 futures, AMZN
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT 5, l.id, l.ticker, l.name, 'FUTURES', 5, 65.2000, 0, NOW()
+-- ---------- DJORDJE (agent, employee_id=5) ----------
+-- CLM26 futures 5, AMZN 20 @ 178.5 (public 4 — bankin OTC izlog)
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 5, 'EMPLOYEE', l.id, l.ticker, l.name, 'FUTURES', 5, 65.2000, 0, NOW()
 FROM listings l WHERE l.ticker = 'CLM26'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 5 AND p.listing_id = l.id);
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 5 AND p.user_role = 'EMPLOYEE' AND p.listing_id = l.id);
 
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT 5, l.id, l.ticker, l.name, 'STOCK', 20, 178.5000, 0, NOW()
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 5, 'EMPLOYEE', l.id, l.ticker, l.name, 'STOCK', 20, 178.5000, 4, NOW()
 FROM listings l WHERE l.ticker = 'AMZN'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 5 AND p.listing_id = l.id);
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 5 AND p.user_role = 'EMPLOYEE' AND p.listing_id = l.id);
 
--- Maja Ristic (agent, employee_id=6) poseduje AAPL, MSFT, NVDA
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT 6, l.id, l.ticker, l.name, 'STOCK', 20, 180.0000, 0, NOW()
+-- ---------- MAJA (agent, employee_id=6) ----------
+-- AAPL 20 @ 180, MSFT 10 @ 390, NVDA 8 @ 820 (public 2 — NVDA OTC od banke)
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 6, 'EMPLOYEE', l.id, l.ticker, l.name, 'STOCK', 20, 180.0000, 0, NOW()
 FROM listings l WHERE l.ticker = 'AAPL'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 6 AND p.listing_id = l.id);
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 6 AND p.user_role = 'EMPLOYEE' AND p.listing_id = l.id);
 
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT 6, l.id, l.ticker, l.name, 'STOCK', 10, 390.0000, 0, NOW()
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 6, 'EMPLOYEE', l.id, l.ticker, l.name, 'STOCK', 10, 390.0000, 0, NOW()
 FROM listings l WHERE l.ticker = 'MSFT'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 6 AND p.listing_id = l.id);
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 6 AND p.user_role = 'EMPLOYEE' AND p.listing_id = l.id);
 
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT 6, l.id, l.ticker, l.name, 'STOCK', 8, 820.0000, 0, NOW()
+INSERT INTO portfolios (user_id, user_role, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
+SELECT 6, 'EMPLOYEE', l.id, l.ticker, l.name, 'STOCK', 8, 820.0000, 2, NOW()
 FROM listings l WHERE l.ticker = 'NVDA'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 6 AND p.listing_id = l.id);
-
--- Lazar Ilic (klijent, user_id=3) poseduje TSLA, GOOG
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT u.id, l.id, l.ticker, l.name, 'STOCK', 15, 255.0000, 0, NOW()
-FROM users u, listings l
-WHERE u.email = 'lazar.ilic@yahoo.com' AND l.ticker = 'TSLA'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = u.id AND p.listing_id = l.id);
-
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT u.id, l.id, l.ticker, l.name, 'STOCK', 30, 160.0000, 0, NOW()
-FROM users u, listings l
-WHERE u.email = 'lazar.ilic@yahoo.com' AND l.ticker = 'GOOG'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = u.id AND p.listing_id = l.id);
-
--- Ana Stojanovic (klijent) poseduje NVDA, AAPL
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT u.id, l.id, l.ticker, l.name, 'STOCK', 5, 810.0000, 0, NOW()
-FROM users u, listings l
-WHERE u.email = 'ana.stojanovic@hotmail.com' AND l.ticker = 'NVDA'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = u.id AND p.listing_id = l.id);
-
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT u.id, l.id, l.ticker, l.name, 'STOCK', 10, 175.0000, 0, NOW()
-FROM users u, listings l
-WHERE u.email = 'ana.stojanovic@hotmail.com' AND l.ticker = 'AAPL'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = u.id AND p.listing_id = l.id);
-
--- Marko Petrovic (admin/supervizor, employee_id=1) poseduje AAPL, MSFT, AMZN
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT 1, l.id, l.ticker, l.name, 'STOCK', 30, 176.0000, 5, NOW()
-FROM listings l WHERE l.ticker = 'AAPL'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 1 AND p.listing_id = l.id);
-
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT 1, l.id, l.ticker, l.name, 'STOCK', 20, 385.0000, 0, NOW()
-FROM listings l WHERE l.ticker = 'MSFT'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 1 AND p.listing_id = l.id);
-
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT 1, l.id, l.ticker, l.name, 'STOCK', 12, 175.0000, 0, NOW()
-FROM listings l WHERE l.ticker = 'AMZN'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 1 AND p.listing_id = l.id);
-
--- Jelena Djordjevic (admin/supervizor, employee_id=2) poseduje GOOG, NVDA
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT 2, l.id, l.ticker, l.name, 'STOCK', 35, 158.0000, 0, NOW()
-FROM listings l WHERE l.ticker = 'GOOG'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 2 AND p.listing_id = l.id);
-
-INSERT INTO portfolios (user_id, listing_id, listing_ticker, listing_name, listing_type, quantity, average_buy_price, public_quantity, last_modified)
-SELECT 2, l.id, l.ticker, l.name, 'STOCK', 6, 800.0000, 0, NOW()
-FROM listings l WHERE l.ticker = 'NVDA'
-AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 2 AND p.listing_id = l.id);
+AND NOT EXISTS (SELECT 1 FROM portfolios p WHERE p.user_id = 6 AND p.user_role = 'EMPLOYEE' AND p.listing_id = l.id);
 
 -- ============================================================
 -- ORDERS ZA ZAPOSLENE (aktuare) — razliciti statusi za testiranje
 -- ============================================================
 
 -- Nikola (supervisor, emp_id=3) — BUY AAPL DONE
-INSERT IGNORE INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
+INSERT INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
                            contract_size, created_at, direction, is_done, last_modification,
                            limit_value, is_margin, order_type, price_per_unit, quantity,
                            remaining_portions, status, stop_value, user_id, user_role, listing_id)
 VALUES
-    (NULL, 0, 0, 'No need for approval', 4462.5000, 1, DATE_SUB(NOW(), INTERVAL 10 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 10 DAY), NULL, 0, 'MARKET', 178.5000,
+    (NULL, 0, 0, 'No need for approval', 4462.5000, 1, (NOW() - INTERVAL '10 days'),
+     'BUY', 1, (NOW() - INTERVAL '10 days'), NULL, 0, 'MARKET', 178.5000,
      25, 0, 'DONE', NULL, 3, 'EMPLOYEE', 1);
 
 -- Nikola — BUY GOOG DONE
-INSERT IGNORE INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
+INSERT INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
                            contract_size, created_at, direction, is_done, last_modification,
                            limit_value, is_margin, order_type, price_per_unit, quantity,
                            remaining_portions, status, stop_value, user_id, user_role, listing_id)
 VALUES
-    (NULL, 0, 0, 'No need for approval', 6480.0000, 1, DATE_SUB(NOW(), INTERVAL 8 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 8 DAY), NULL, 0, 'MARKET', 162.0000,
+    (NULL, 0, 0, 'No need for approval', 6480.0000, 1, (NOW() - INTERVAL '8 days'),
+     'BUY', 1, (NOW() - INTERVAL '8 days'), NULL, 0, 'MARKET', 162.0000,
      40, 0, 'DONE', NULL, 3, 'EMPLOYEE', 3);
 
 -- Maja (agent, emp_id=6) — BUY AAPL DONE
-INSERT IGNORE INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
+INSERT INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
                            contract_size, created_at, direction, is_done, last_modification,
                            limit_value, is_margin, order_type, price_per_unit, quantity,
                            remaining_portions, status, stop_value, user_id, user_role, listing_id)
 VALUES
-    (NULL, 0, 0, 'Nikola Milenkovic', 3600.0000, 1, DATE_SUB(NOW(), INTERVAL 6 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 6 DAY), NULL, 0, 'MARKET', 180.0000,
+    (NULL, 0, 0, 'Nikola Milenkovic', 3600.0000, 1, (NOW() - INTERVAL '6 days'),
+     'BUY', 1, (NOW() - INTERVAL '6 days'), NULL, 0, 'MARKET', 180.0000,
      20, 0, 'DONE', NULL, 6, 'EMPLOYEE', 1);
 
 -- Maja — BUY MSFT DONE
-INSERT IGNORE INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
+INSERT INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
                            contract_size, created_at, direction, is_done, last_modification,
                            limit_value, is_margin, order_type, price_per_unit, quantity,
                            remaining_portions, status, stop_value, user_id, user_role, listing_id)
 VALUES
-    (NULL, 0, 0, 'Nikola Milenkovic', 3900.0000, 1, DATE_SUB(NOW(), INTERVAL 5 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 5 DAY), NULL, 0, 'MARKET', 390.0000,
+    (NULL, 0, 0, 'Nikola Milenkovic', 3900.0000, 1, (NOW() - INTERVAL '5 days'),
+     'BUY', 1, (NOW() - INTERVAL '5 days'), NULL, 0, 'MARKET', 390.0000,
      10, 0, 'DONE', NULL, 6, 'EMPLOYEE', 2);
 
 -- Maja — BUY NVDA DONE
-INSERT IGNORE INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
+INSERT INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
                            contract_size, created_at, direction, is_done, last_modification,
                            limit_value, is_margin, order_type, price_per_unit, quantity,
                            remaining_portions, status, stop_value, user_id, user_role, listing_id)
 VALUES
-    (NULL, 0, 0, 'Nikola Milenkovic', 6560.0000, 1, DATE_SUB(NOW(), INTERVAL 4 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 4 DAY), NULL, 0, 'MARKET', 820.0000,
+    (NULL, 0, 0, 'Nikola Milenkovic', 6560.0000, 1, (NOW() - INTERVAL '4 days'),
+     'BUY', 1, (NOW() - INTERVAL '4 days'), NULL, 0, 'MARKET', 820.0000,
      8, 0, 'DONE', NULL, 6, 'EMPLOYEE', 5);
 
--- Maja — LIMIT BUY GOOG PENDING (treba odobrenje jer needApproval=true)
-INSERT IGNORE INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
+-- Maja — LIMIT BUY GOOG PENDING (treba odobrenje jer needApproval=1)
+INSERT INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
                            contract_size, created_at, direction, is_done, last_modification,
                            limit_value, is_margin, order_type, price_per_unit, quantity,
                            remaining_portions, status, stop_value, user_id, user_role, listing_id)
@@ -2291,89 +2250,70 @@ VALUES
      20, 20, 'PENDING', NULL, 6, 'EMPLOYEE', 3);
 
 -- Maja — SELL AAPL APPROVED (u toku izvrsavanja)
-INSERT IGNORE INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
+INSERT INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
                            contract_size, created_at, direction, is_done, last_modification,
                            limit_value, is_margin, order_type, price_per_unit, quantity,
                            remaining_portions, status, stop_value, user_id, user_role, listing_id)
 VALUES
-    (NULL, 0, 0, 'Nikola Milenkovic', 950.0000, 1, DATE_SUB(NOW(), INTERVAL 1 DAY),
+    (NULL, 0, 0, 'Nikola Milenkovic', 950.0000, 1, (NOW() - INTERVAL '1 days'),
      'SELL', 0, NOW(), NULL, 0, 'MARKET', 190.0000,
      5, 3, 'APPROVED', NULL, 6, 'EMPLOYEE', 1);
 
 -- Tamara (agent, emp_id=4) — BUY MSFT DONE
-INSERT IGNORE INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
+INSERT INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
                            contract_size, created_at, direction, is_done, last_modification,
                            limit_value, is_margin, order_type, price_per_unit, quantity,
                            remaining_portions, status, stop_value, user_id, user_role, listing_id)
 VALUES
-    (NULL, 0, 0, 'Nikola Milenkovic', 5925.0000, 1, DATE_SUB(NOW(), INTERVAL 9 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 9 DAY), NULL, 0, 'MARKET', 395.0000,
+    (NULL, 0, 0, 'Nikola Milenkovic', 5925.0000, 1, (NOW() - INTERVAL '9 days'),
+     'BUY', 1, (NOW() - INTERVAL '9 days'), NULL, 0, 'MARKET', 395.0000,
      15, 0, 'DONE', NULL, 4, 'EMPLOYEE', 2);
 
 -- Djordje (agent, emp_id=5) — BUY AMZN DONE
-INSERT IGNORE INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
+INSERT INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
                            contract_size, created_at, direction, is_done, last_modification,
                            limit_value, is_margin, order_type, price_per_unit, quantity,
                            remaining_portions, status, stop_value, user_id, user_role, listing_id)
 VALUES
-    (NULL, 0, 0, 'Nikola Milenkovic', 3570.0000, 1, DATE_SUB(NOW(), INTERVAL 7 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 7 DAY), NULL, 0, 'MARKET', 178.5000,
+    (NULL, 0, 0, 'Nikola Milenkovic', 3570.0000, 1, (NOW() - INTERVAL '7 days'),
+     'BUY', 1, (NOW() - INTERVAL '7 days'), NULL, 0, 'MARKET', 178.5000,
      20, 0, 'DONE', NULL, 5, 'EMPLOYEE', 6);
 
 -- Marko (admin/supervisor, emp_id=1) — BUY AAPL, MSFT, AMZN DONE
-INSERT IGNORE INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
+INSERT INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
                            contract_size, created_at, direction, is_done, last_modification,
                            limit_value, is_margin, order_type, price_per_unit, quantity,
                            remaining_portions, status, stop_value, user_id, user_role, listing_id)
 VALUES
-    (NULL, 0, 0, 'No need for approval', 5280.0000, 1, DATE_SUB(NOW(), INTERVAL 14 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 14 DAY), NULL, 0, 'MARKET', 176.0000,
+    (NULL, 0, 0, 'No need for approval', 5280.0000, 1, (NOW() - INTERVAL '14 days'),
+     'BUY', 1, (NOW() - INTERVAL '14 days'), NULL, 0, 'MARKET', 176.0000,
      30, 0, 'DONE', NULL, 1, 'EMPLOYEE', 1),
-    (NULL, 0, 0, 'No need for approval', 7700.0000, 1, DATE_SUB(NOW(), INTERVAL 12 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 12 DAY), NULL, 0, 'MARKET', 385.0000,
+    (NULL, 0, 0, 'No need for approval', 7700.0000, 1, (NOW() - INTERVAL '12 days'),
+     'BUY', 1, (NOW() - INTERVAL '12 days'), NULL, 0, 'MARKET', 385.0000,
      20, 0, 'DONE', NULL, 1, 'EMPLOYEE', 2),
-    (NULL, 0, 0, 'No need for approval', 2100.0000, 1, DATE_SUB(NOW(), INTERVAL 11 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 11 DAY), NULL, 0, 'MARKET', 175.0000,
+    (NULL, 0, 0, 'No need for approval', 2100.0000, 1, (NOW() - INTERVAL '11 days'),
+     'BUY', 1, (NOW() - INTERVAL '11 days'), NULL, 0, 'MARKET', 175.0000,
      12, 0, 'DONE', NULL, 1, 'EMPLOYEE', 6);
 
 -- Jelena (admin/supervisor, emp_id=2) — BUY GOOG, NVDA DONE
-INSERT IGNORE INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
+INSERT INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
                            contract_size, created_at, direction, is_done, last_modification,
                            limit_value, is_margin, order_type, price_per_unit, quantity,
                            remaining_portions, status, stop_value, user_id, user_role, listing_id)
 VALUES
-    (NULL, 0, 0, 'No need for approval', 5530.0000, 1, DATE_SUB(NOW(), INTERVAL 13 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 13 DAY), NULL, 0, 'MARKET', 158.0000,
+    (NULL, 0, 0, 'No need for approval', 5530.0000, 1, (NOW() - INTERVAL '13 days'),
+     'BUY', 1, (NOW() - INTERVAL '13 days'), NULL, 0, 'MARKET', 158.0000,
      35, 0, 'DONE', NULL, 2, 'EMPLOYEE', 3),
-    (NULL, 0, 0, 'No need for approval', 4800.0000, 1, DATE_SUB(NOW(), INTERVAL 10 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 10 DAY), NULL, 0, 'MARKET', 800.0000,
+    (NULL, 0, 0, 'No need for approval', 4800.0000, 1, (NOW() - INTERVAL '10 days'),
+     'BUY', 1, (NOW() - INTERVAL '10 days'), NULL, 0, 'MARKET', 800.0000,
      6, 0, 'DONE', NULL, 2, 'EMPLOYEE', 5);
 
--- Lazar (klijent) — BUY TSLA, GOOG DONE
-INSERT IGNORE INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
+-- Ana (klijent) — SELL AAPL PENDING (dodatno u odnosu na glavni blok)
+INSERT INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
                            contract_size, created_at, direction, is_done, last_modification,
                            limit_value, is_margin, order_type, price_per_unit, quantity,
                            remaining_portions, status, stop_value, user_id, user_role, listing_id)
 VALUES
-    (7, 0, 0, 'No need for approval', 3825.0000, 1, DATE_SUB(NOW(), INTERVAL 6 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 6 DAY), NULL, 0, 'MARKET', 255.0000,
-     15, 0, 'DONE', NULL, 3, 'CLIENT', 4),
-    (7, 0, 0, 'No need for approval', 4800.0000, 1, DATE_SUB(NOW(), INTERVAL 5 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 5 DAY), NULL, 0, 'MARKET', 160.0000,
-     30, 0, 'DONE', NULL, 3, 'CLIENT', 3);
-
--- Ana (klijent) — BUY NVDA, AAPL DONE + PENDING SELL
-INSERT IGNORE INTO orders (account_id, after_hours, all_or_none, approved_by, approximate_price,
-                           contract_size, created_at, direction, is_done, last_modification,
-                           limit_value, is_margin, order_type, price_per_unit, quantity,
-                           remaining_portions, status, stop_value, user_id, user_role, listing_id)
-VALUES
-    (11, 0, 0, 'No need for approval', 4050.0000, 1, DATE_SUB(NOW(), INTERVAL 8 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 8 DAY), NULL, 0, 'MARKET', 810.0000,
-     5, 0, 'DONE', NULL, 4, 'CLIENT', 5),
-    (11, 0, 0, 'No need for approval', 1750.0000, 1, DATE_SUB(NOW(), INTERVAL 7 DAY),
-     'BUY', 1, DATE_SUB(NOW(), INTERVAL 7 DAY), NULL, 0, 'MARKET', 175.0000,
-     10, 0, 'DONE', NULL, 4, 'CLIENT', 1),
     (11, 0, 1, NULL, 1900.0000, 1, NOW(),
      'SELL', 0, NOW(), NULL, 0, 'MARKET', 190.0000,
      3, 3, 'PENDING', NULL, 4, 'CLIENT', 1);
@@ -2399,26 +2339,108 @@ UPDATE accounts SET account_category = 'CLIENT';
 -- Izuzetak: poreski racun drzave (company_id=4) ostaje CLIENT.
 UPDATE accounts SET account_category = 'BANK_TRADING' WHERE company_id = 3;
 
--- Novi bank trading racuni za order flow (RSD, USD, EUR)
--- Koristi se company_id=3 (Banka 2025 Tim 2) i employee_id=1 jer schema to zahteva.
-INSERT IGNORE INTO accounts (account_number, account_type, account_subtype, currency_id,
-                             client_id, company_id, employee_id,
-                             balance, available_balance, reserved_amount, account_category,
-                             daily_limit, monthly_limit,
-                             daily_spending, monthly_spending,
-                             maintenance_fee, expiration_date, status, name, created_at)
+-- Namerno ne dodajemo dodatne BANK_TRADING racune za RSD/USD/EUR — postojeci
+-- (222000100000000110/140/120) vec pokrivaju te valute i oznaceni su kao
+-- BANK_TRADING gornjim UPDATE-om. Duplikati su obarali findBankAccountByCurrency
+-- (Optional<Account> koji pada na 2 reda) pa ih ovde ne seed-ujemo.
+-- Punjenje saldo bankinih racuna da FX transferi imaju kome da duguju:
+UPDATE accounts SET balance = 500000000.0000, available_balance = 500000000.0000,
+    daily_limit = 999999999.0000, monthly_limit = 999999999.0000
+WHERE account_number = '222000100000000110';  -- RSD
+UPDATE accounts SET balance = 5000000.0000, available_balance = 5000000.0000,
+    daily_limit = 999999999.0000, monthly_limit = 999999999.0000
+WHERE account_number = '222000100000000140';  -- USD
+UPDATE accounts SET balance = 5000000.0000, available_balance = 5000000.0000,
+    daily_limit = 999999999.0000, monthly_limit = 999999999.0000
+WHERE account_number = '222000100000000120';  -- EUR
+
+-- ============================================================
+-- OTC (Celina 4) — aktivne ponude + sklopljeni ugovori
+-- ============================================================
+-- Stefan (client 1) vidi:
+--   DISCOVERY (drugi nude javno): Milica GOOG 30, Milica AMZN 5, Lazar TSLA 8,
+--     Ana AAPL 5, Ana NVDA 3, Djordje AMZN 4, Maja NVDA 2, Stefan sam nudi MSFT 10.
+--   AKTIVNE PONUDE (kao kupac): prema Milici za GOOG (ceka se Milica).
+--   AKTIVNE PONUDE (kao prodavac): Ana zeli Stefanov MSFT (ceka se Stefan).
+--   CONTRACTS: Stefan kupac GOOG call od Milice (active), Stefan kupac TSLA call od Lazara (active),
+--     Stefan kupac AAPL call od Djordja (exercised istorija), Stefan prodavac MSFT
+--     call Ani (active) — mesavina uloga.
+-- Svi iznosi u USD (valuta listinga).
+--
+-- listing_id: 1=AAPL, 2=MSFT, 3=GOOG, 4=TSLA, 5=AMZN, 13=NVDA
+-- ============================================================
+
+-- ---------- AKTIVNE PONUDE ----------
+INSERT INTO otc_offers
+    (buyer_id, buyer_role, seller_id, seller_role, listing_id, quantity,
+     price_per_stock, premium, settlement_date,
+     last_modified_by_id, last_modified_by_name, waiting_on_user_id, status,
+     created_at, last_modified_at)
 VALUES
-    ('999000000000000001', 'BUSINESS', 'STANDARD', 8, NULL, 3, 1,
-     500000000.0000, 500000000.0000, 0.0000, 'BANK_TRADING',
-     999999999.0000, 999999999.0000, 0.0000, 0.0000, 0.0000,
-     '2050-01-01', 'ACTIVE', 'Banka Trading RSD', NOW()),
+    -- 1) Stefan hoce 10 GOOG od Milice po $172; waiting on Milica
+    (1, 'CLIENT', 2, 'CLIENT', 3, 10, 172.0000, 45.0000,
+     (CURRENT_DATE + INTERVAL '30 days'),
+     1, 'Stefan Jovanović', 2, 'ACTIVE',
+     (NOW() - INTERVAL '6 hours'), (NOW() - INTERVAL '6 hours')),
 
-    ('999000000000000002', 'BUSINESS', 'STANDARD', 3, NULL, 3, 1,
-     5000000.0000, 5000000.0000, 0.0000, 'BANK_TRADING',
-     999999999.0000, 999999999.0000, 0.0000, 0.0000, 0.0000,
-     '2050-01-01', 'ACTIVE', 'Banka Trading USD', NOW()),
+    -- 2) Ana hoce 5 MSFT od Stefana po $395; waiting on Stefan (Stefan treba da reaguje)
+    (4, 'CLIENT', 1, 'CLIENT', 2, 5, 395.0000, 28.0000,
+     (CURRENT_DATE + INTERVAL '21 days'),
+     4, 'Ana Stojanović', 1, 'ACTIVE',
+     (NOW() - INTERVAL '2 hours'), (NOW() - INTERVAL '2 hours')),
 
-    ('999000000000000003', 'BUSINESS', 'STANDARD', 1, NULL, 3, 1,
-     5000000.0000, 5000000.0000, 0.0000, 'BANK_TRADING',
-     999999999.0000, 999999999.0000, 0.0000, 0.0000, 0.0000,
-     '2050-01-01', 'ACTIVE', 'Banka Trading EUR', NOW());
+    -- 3) Lazar hoce 4 AAPL od Ane; waiting on Ana
+    (3, 'CLIENT', 4, 'CLIENT', 1, 4, 195.0000, 22.0000,
+     (CURRENT_DATE + INTERVAL '45 days'),
+     3, 'Lazar Ilić', 4, 'ACTIVE',
+     (NOW() - INTERVAL '1 days'), (NOW() - INTERVAL '1 days')),
+
+    -- 4) Djordje (bank agent 5) nudi Stefanu AMZN pakovanje; Djordje kreirao, waiting on Stefan
+    (1, 'CLIENT', 5, 'EMPLOYEE', 5, 3, 180.0000, 15.0000,
+     (CURRENT_DATE + INTERVAL '60 days'),
+     5, 'Đorđe Janković', 1, 'ACTIVE',
+     (NOW() - INTERVAL '4 hours'), (NOW() - INTERVAL '30 minutes')),
+
+    -- 5) Milica hoce 2 NVDA od Maje (banka); waiting on Maja
+    (2, 'CLIENT', 6, 'EMPLOYEE', 13, 2, 830.0000, 40.0000,
+     (CURRENT_DATE + INTERVAL '15 days'),
+     2, 'Milica Nikolić', 6, 'ACTIVE',
+     (NOW() - INTERVAL '8 hours'), (NOW() - INTERVAL '8 hours'));
+
+-- ---------- SKLOPLJENI UGOVORI ----------
+-- NOTE: redosled premium / settlement_date pazljivo da stoje datumi koji nisu prosli.
+-- buyer stefan ima vise aktivnih, + jedan exercised + jedan expired (istorija).
+INSERT INTO otc_contracts
+    (source_offer_id, buyer_id, buyer_role, seller_id, seller_role, listing_id,
+     quantity, strike_price, premium, settlement_date, status,
+     created_at, exercised_at)
+VALUES
+    -- A) Stefan (kupac) drzi ACTIVE call na 5 GOOG od Milice, strike $170
+    (1001, 1, 'CLIENT', 2, 'CLIENT', 3, 5, 170.0000, 22.0000,
+     (CURRENT_DATE + INTERVAL '25 days'), 'ACTIVE',
+     (NOW() - INTERVAL '3 days'), NULL),
+
+    -- B) Stefan (kupac) drzi ACTIVE call na 3 TSLA od Lazara, strike $260
+    (1002, 1, 'CLIENT', 3, 'CLIENT', 4, 3, 260.0000, 18.0000,
+     (CURRENT_DATE + INTERVAL '18 days'), 'ACTIVE',
+     (NOW() - INTERVAL '5 days'), NULL),
+
+    -- C) Stefan (kupac) drzi ACTIVE call na 1 NVDA od Djordja (banka), strike $820
+    (1003, 1, 'CLIENT', 5, 'EMPLOYEE', 13, 1, 820.0000, 35.0000,
+     (CURRENT_DATE + INTERVAL '40 days'), 'ACTIVE',
+     (NOW() - INTERVAL '2 days'), NULL),
+
+    -- D) Stefan (prodavac) ima ACTIVE call na 3 MSFT prema Ani, strike $400
+    (1004, 4, 'CLIENT', 1, 'CLIENT', 2, 3, 400.0000, 20.0000,
+     (CURRENT_DATE + INTERVAL '35 days'), 'ACTIVE',
+     (NOW() - INTERVAL '4 days'), NULL),
+
+    -- E) Istorijski EXERCISED: Stefan je pre 15 dana iskoristio call na AAPL od Maje
+    (1005, 1, 'CLIENT', 6, 'EMPLOYEE', 1, 2, 180.0000, 8.0000,
+     (CURRENT_DATE - INTERVAL '3 days'), 'EXERCISED',
+     (NOW() - INTERVAL '15 days'), (NOW() - INTERVAL '3 days')),
+
+    -- F) Istorijski EXPIRED: Lazar je imao call na NVDA od Ane, istekao pre 5 dana
+    (1006, 3, 'CLIENT', 4, 'CLIENT', 13, 1, 825.0000, 30.0000,
+     (CURRENT_DATE - INTERVAL '5 days'), 'EXPIRED',
+     (NOW() - INTERVAL '35 days'), NULL);

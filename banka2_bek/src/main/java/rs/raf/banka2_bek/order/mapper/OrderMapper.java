@@ -51,6 +51,8 @@ public final class OrderMapper {
         dto.setAccountId(order.getAccountId());
         dto.setApproximatePrice(calculateApproximatePrice(order));
         dto.setListingSettlementDate(order.getListing() != null ? order.getListing().getSettlementDate() : null);
+        dto.setFxCommission(order.getFxCommission());
+        dto.setExchangeRate(order.getExchangeRate());
 
         return dto;
     }

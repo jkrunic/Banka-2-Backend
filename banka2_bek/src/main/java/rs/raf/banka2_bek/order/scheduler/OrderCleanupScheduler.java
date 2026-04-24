@@ -9,17 +9,19 @@ import rs.raf.banka2_bek.order.model.Order;
 import rs.raf.banka2_bek.order.model.OrderStatus;
 import rs.raf.banka2_bek.order.repository.OrderRepository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Scheduler za ciscenje isteklih ordera.
+ * Scheduler za ciscenje ordera kojima je prosao settlement datum.
  *
- * Pokrece se svaki dan u 01:00 ujutru.
- * Pronalazi sve APPROVED ordere kojima je prosao settlement datum
- * i postavlja ih na DECLINED sa razlogom "Settlement date expired".
+ * Pokrece se svaki dan u 01:00 ujutru. Pronalazi PENDING ili APPROVED
+ * ordere za hartije ciji je settlementDate prosao i postavlja ih na
+ * DECLINED.
  *
- * Specifikacija: Celina 3 - Orderi
+ * Specifikacija: Celina 3 - "Kod hartija koje imaju settlement date,
+ * i gde je taj datum prosao, postoji samo Decline opcija."
  */
 @Component
 @RequiredArgsConstructor
@@ -28,34 +30,33 @@ public class OrderCleanupScheduler {
 
     private final OrderRepository orderRepository;
 
-    /**
-     * Dnevno ciscenje isteklih ordera — pokrece se u 01:00 ujutru.
-     *
-     * Cron format: sekunda minut sat dan-u-mesecu mesec dan-u-nedelji
-     * "0 0 1 * * *" = 01:00:00 svakog dana
-     */
     @Scheduled(cron = "0 0 1 * * *")
     @Transactional
     public void cleanupExpiredOrders() {
+        log.info("Pokrecem ciscenje ordera sa isteklim settlement datumom...");
 
-        log.info("Pokrecem ciscenje isteklih ordera...");
-
-        List<Order> approvedOrders = orderRepository.findByStatusAndIsDoneFalse(OrderStatus.APPROVED);
+        List<Order> candidates = orderRepository.findActiveNonDone();
+        LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
         int declinedCount = 0;
 
-        for (Order order : approvedOrders) {
-            if (order.getLastModification() != null && order.getLastModification().isBefore(now.minusDays(1))) {
-                 order.setStatus(OrderStatus.DECLINED);
-                 order.setApprovedBy("SYSTEM - Settlement date expired");
-                 order.setLastModification(now);
-                 orderRepository.save(order);
-                 log.info("Order {} (user={}, listing={}) declined - settlement date expired",
-                          order.getId(), order.getUserId(), order.getListing().getId());
-                 declinedCount++;
-             }
-         }
+        for (Order order : candidates) {
+            LocalDate settlement = order.getListing() != null
+                    ? order.getListing().getSettlementDate()
+                    : null;
+            if (settlement == null || !settlement.isBefore(today)) {
+                continue;
+            }
+            order.setStatus(OrderStatus.DECLINED);
+            order.setApprovedBy("SYSTEM - Settlement date expired");
+            order.setLastModification(now);
+            orderRepository.save(order);
+            log.info("Order {} (user={}, listing={}) declined - settlement {} passed",
+                    order.getId(), order.getUserId(),
+                    order.getListing().getTicker(), settlement);
+            declinedCount++;
+        }
 
-        log.info("Ciscenje isteklih ordera zavrseno. Ukupno odbijeno: {}", declinedCount);
+        log.info("Ciscenje zavrseno. Ukupno odbijeno: {}", declinedCount);
     }
 }

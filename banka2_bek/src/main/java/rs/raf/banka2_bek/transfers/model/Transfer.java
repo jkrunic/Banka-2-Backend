@@ -56,6 +56,7 @@ public class Transfer {
     private BigDecimal exchangeRate;
 
     @Column(nullable = false, precision = 10, scale = 4)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal commission = BigDecimal.ZERO;    // Provizija banke
 
@@ -65,6 +66,7 @@ public class Transfer {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 15)
+    @org.hibernate.annotations.ColumnDefault("'PROCESSING'")
     @Builder.Default
     private PaymentStatus status = PaymentStatus.PROCESSING;
 
@@ -73,6 +75,7 @@ public class Transfer {
     private Client createdBy;
 
     @Column(nullable = false, updatable = false)
+    @org.hibernate.annotations.ColumnDefault("CURRENT_TIMESTAMP")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 }

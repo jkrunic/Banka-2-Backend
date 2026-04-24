@@ -19,6 +19,7 @@ import rs.raf.banka2_bek.order.model.OrderStatus;
 import rs.raf.banka2_bek.order.repository.OrderRepository;
 import rs.raf.banka2_bek.order.service.CurrencyConversionService;
 import rs.raf.banka2_bek.stock.model.Listing;
+import rs.raf.banka2_bek.stock.model.ListingType;
 import rs.raf.banka2_bek.tax.dto.TaxRecordDto;
 import rs.raf.banka2_bek.tax.model.TaxRecord;
 import rs.raf.banka2_bek.tax.repository.TaxRecordRepository;
@@ -68,7 +69,13 @@ class TaxServiceTest {
         o.setContractSize(contractSize);
         o.setDone(true);
         o.setStatus(OrderStatus.DONE);
-        o.setListing(new Listing());
+        Listing listing = new Listing();
+        // Spec (Celina 3 - Porez): porez se racuna samo na prodaju AKCIJA
+        listing.setListingType(ListingType.STOCK);
+        // Osnovni test-orderi se vode u RSD da bi izbegli konverziju —
+        // testovi koji se bave FX-om eksplicitno setuju drugaciju valutu.
+        listing.setQuoteCurrency("RSD");
+        o.setListing(listing);
         return o;
     }
 
@@ -276,6 +283,8 @@ class TaxServiceTest {
             Listing l = new Listing();
             l.setId(id);
             l.setQuoteCurrency(quoteCurrency);
+            // Porez se racuna samo za STOCK (Celina 3 spec)
+            l.setListingType(ListingType.STOCK);
             return l;
         }
 

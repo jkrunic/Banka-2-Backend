@@ -1,19 +1,17 @@
 services:
   db:
-    image: mysql:8.0
+    image: postgres:16-alpine
     container_name: banka2_db
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: banka2
-      MYSQL_USER: banka2user
-      MYSQL_PASSWORD: banka2pass
+      POSTGRES_DB: banka2
+      POSTGRES_USER: banka2user
+      POSTGRES_PASSWORD: banka2pass
     ports:
-      - "3307:3306"
+      - "5433:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      test: ["CMD-SHELL", "pg_isready -U banka2user -d banka2"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -21,6 +19,9 @@ services:
   adminer:
     image: adminer
     container_name: banka2_adminer
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+      ADMINER_DESIGN: pepa-linha
     ports:
       - "9001:8080"
 
@@ -31,22 +32,26 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/banka2?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/banka2
       SPRING_DATASOURCE_USERNAME: banka2user
       SPRING_DATASOURCE_PASSWORD: banka2pass
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_SHOW_SQL: "false"
-      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQLDialect
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+      SPRING_JPA_PROPERTIES_HIBERNATE_TYPE_PREFERRED_BOOLEAN_JDBC_TYPE: INTEGER
     depends_on:
       db:
         condition: service_healthy
 
   # Seed data — ceka backend da kreira tabele pa ubaci podatke
   seed:
-    image: mysql:8.0
+    image: postgres:16-alpine
     container_name: banka2_seed
     volumes:
       - ./seed.sql:/seed.sql:ro
+    environment:
+      PGPASSWORD: banka2pass
     entrypoint:
       - sh
       - -c
@@ -54,16 +59,16 @@ services:
         echo 'Cekam da backend kreira tabele...'
         sleep 40
         for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-          mysql --default-character-set=utf8mb4 -h db -u banka2user -pbanka2pass banka2 -e 'SELECT 1 FROM users LIMIT 1' 2>/dev/null && break
+          psql -h db -U banka2user -d banka2 -c 'SELECT 1 FROM users LIMIT 1' >/dev/null 2>&1 && break
           echo "Pokusaj $$i - tabele jos nisu kreirane, cekam..."
           sleep 10
         done
         sleep 5
         echo 'Ubacujem seed podatke...'
-        mysql --default-character-set=utf8mb4 -h db -u banka2user -pbanka2pass banka2 < /seed.sql
+        psql -h db -U banka2user -d banka2 -v ON_ERROR_STOP=1 -f /seed.sql
         echo 'Seed uspesno ubasen!'
     depends_on:
       - backend
 
 volumes:
-  mysql_data:
+  postgres_data:

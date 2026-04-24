@@ -67,21 +67,25 @@ public class Transaction {
 
     // Isplata — iznos koji se skida sa računa (0 ako nema isplate)
     @Column(nullable = false, precision = 19, scale = 4, updatable = false)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal debit = BigDecimal.ZERO;
 
     // Uplata — iznos koji se dodaje na račun (0 ako nema uplate)
     @Column(nullable = false, precision = 19, scale = 4, updatable = false)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal credit = BigDecimal.ZERO;
 
     // Rezervisana sredstva (za buduće kupovine hartija od vrednosti)
     @Column(nullable = false, precision = 19, scale = 4, updatable = false)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal reserved = BigDecimal.ZERO;
 
     // Koliko rezervisanih sredstava se koristi u ovoj transakciji
     @Column(nullable = false, precision = 19, scale = 4, updatable = false)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal reservedUsed = BigDecimal.ZERO;
 
@@ -94,6 +98,7 @@ public class Transaction {
     private BigDecimal availableAfter;
 
     @Column(nullable = false, updatable = false)
+    @org.hibernate.annotations.ColumnDefault("CURRENT_TIMESTAMP")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 }

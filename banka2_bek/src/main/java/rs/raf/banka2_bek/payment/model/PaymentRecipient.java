@@ -32,6 +32,7 @@ public class PaymentRecipient {
     private String accountNumber;   // Recipient account number
 
     @Column(nullable = false, updatable = false)
+    @org.hibernate.annotations.ColumnDefault("CURRENT_TIMESTAMP")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 }

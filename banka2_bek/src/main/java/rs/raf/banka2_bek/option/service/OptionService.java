@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import rs.raf.banka2_bek.account.model.Account;
 import rs.raf.banka2_bek.account.repository.AccountRepository;
 import rs.raf.banka2_bek.actuary.repository.ActuaryInfoRepository;
+import rs.raf.banka2_bek.auth.util.UserRole;
 import rs.raf.banka2_bek.employee.model.Employee;
 import rs.raf.banka2_bek.employee.repository.EmployeeRepository;
 import rs.raf.banka2_bek.option.dto.OptionChainDto;
@@ -159,12 +160,12 @@ public class OptionService {
             accountRepository.save(bankAccount);
 
             // Add shares to portfolio
-            updatePortfolioBuy(employee.getId(), stockListing, contractSize, currentPrice);
+            updatePortfolioBuy(employee.getId(), UserRole.EMPLOYEE, stockListing, contractSize, currentPrice);
 
         } else {
             // PUT exercise: user sells shares at strikePrice, receives cash
             // Remove shares from portfolio (must own them)
-            updatePortfolioSell(employee.getId(), stockListing, contractSize);
+            updatePortfolioSell(employee.getId(), UserRole.EMPLOYEE, stockListing, contractSize);
 
             // Credit the bank account
             bankAccount.setBalance(bankAccount.getBalance().add(totalCost));
@@ -193,8 +194,8 @@ public class OptionService {
      * Adds shares to portfolio after CALL exercise.
      * Same pattern as OrderExecutionService.updatePortfolio for BUY.
      */
-    private void updatePortfolioBuy(Long userId, Listing listing, int quantity, BigDecimal price) {
-        Optional<Portfolio> existing = portfolioRepository.findByUserId(userId)
+    private void updatePortfolioBuy(Long userId, String userRole, Listing listing, int quantity, BigDecimal price) {
+        Optional<Portfolio> existing = portfolioRepository.findByUserIdAndUserRole(userId, userRole)
                 .stream()
                 .filter(p -> p.getListingId().equals(listing.getId()))
                 .findFirst();
@@ -215,6 +216,7 @@ public class OptionService {
         } else {
             Portfolio portfolio = new Portfolio();
             portfolio.setUserId(userId);
+            portfolio.setUserRole(userRole);
             portfolio.setListingId(listing.getId());
             portfolio.setListingTicker(listing.getTicker());
             portfolio.setListingName(listing.getName());
@@ -230,8 +232,8 @@ public class OptionService {
      * Removes shares from portfolio after PUT exercise.
      * Same pattern as OrderExecutionService.updatePortfolio for SELL.
      */
-    private void updatePortfolioSell(Long userId, Listing listing, int quantity) {
-        Portfolio portfolio = portfolioRepository.findByUserId(userId)
+    private void updatePortfolioSell(Long userId, String userRole, Listing listing, int quantity) {
+        Portfolio portfolio = portfolioRepository.findByUserIdAndUserRole(userId, userRole)
                 .stream()
                 .filter(p -> p.getListingId().equals(listing.getId()))
                 .findFirst()
@@ -272,7 +274,7 @@ public class OptionService {
             throw new AccessDeniedException("Samo aktivan aktuar moze da izvrsi opciju.");
         }
 
-        boolean adminEmployee = employee.getPermissions() != null && employee.getPermissions().contains("ADMIN");
+        boolean adminEmployee = employee.getPermissions() != null && employee.getPermissions().contains(UserRole.ADMIN);
         boolean actuaryExists = actuaryInfoRepository.findByEmployeeId(employee.getId()).isPresent();
 
         if (!adminEmployee && !actuaryExists) {

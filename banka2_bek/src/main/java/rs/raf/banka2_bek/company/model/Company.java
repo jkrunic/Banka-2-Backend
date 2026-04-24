@@ -45,15 +45,18 @@ public class Company {
     private Company majorityOwner;
 
     @Column(nullable = false)
+    @org.hibernate.annotations.ColumnDefault("1")
     @Builder.Default
     private Boolean active = true;
 
     // Da li je ovo entitet države (Republika Srbija) — koristi se za poreze
     @Column(nullable = false)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private Boolean isState = false;
 
     @Column(nullable = false, updatable = false)
+    @org.hibernate.annotations.ColumnDefault("CURRENT_TIMESTAMP")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 

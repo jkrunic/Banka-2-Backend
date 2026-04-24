@@ -10,15 +10,19 @@ import rs.raf.banka2_bek.account.model.AccountStatus;
 import rs.raf.banka2_bek.account.repository.AccountRepository;
 import rs.raf.banka2_bek.auth.model.User;
 import rs.raf.banka2_bek.auth.repository.UserRepository;
+import rs.raf.banka2_bek.auth.util.UserRole;
 import rs.raf.banka2_bek.employee.model.Employee;
 import rs.raf.banka2_bek.employee.repository.EmployeeRepository;
 import rs.raf.banka2_bek.order.model.Order;
 import rs.raf.banka2_bek.order.model.OrderDirection;
 import rs.raf.banka2_bek.order.repository.OrderRepository;
 import rs.raf.banka2_bek.order.service.CurrencyConversionService;
+import rs.raf.banka2_bek.stock.model.ListingType;
+import rs.raf.banka2_bek.stock.util.ListingCurrencyResolver;
 import rs.raf.banka2_bek.tax.dto.TaxRecordDto;
 import rs.raf.banka2_bek.tax.model.TaxRecord;
 import rs.raf.banka2_bek.tax.repository.TaxRecordRepository;
+import rs.raf.banka2_bek.tax.util.TaxConstants;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -36,7 +40,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TaxService {
 
-    private static final BigDecimal TAX_RATE = new BigDecimal("0.15"); // 15%
 
     private final TaxRecordRepository taxRecordRepository;
     private final OrderRepository orderRepository;
@@ -70,32 +73,42 @@ public class TaxService {
         Optional<Employee> empOpt = employeeRepository.findByEmail(email);
         if (empOpt.isPresent()) {
             Employee emp = empOpt.get();
-            Optional<TaxRecord> record = taxRecordRepository.findByUserIdAndUserType(emp.getId(), "EMPLOYEE");
+            Optional<TaxRecord> record = taxRecordRepository.findByUserIdAndUserType(emp.getId(), UserRole.EMPLOYEE);
             return record.map(this::toDto).orElseGet(() -> emptyDto(emp.getId(),
-                    emp.getFirstName() + " " + emp.getLastName(), "EMPLOYEE"));
+                    emp.getFirstName() + " " + emp.getLastName(), UserRole.EMPLOYEE));
         }
 
         // Probaj kao client (User entity)
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            Optional<TaxRecord> record = taxRecordRepository.findByUserIdAndUserType(user.getId(), "CLIENT");
+            Optional<TaxRecord> record = taxRecordRepository.findByUserIdAndUserType(user.getId(), UserRole.CLIENT);
             return record.map(this::toDto).orElseGet(() -> emptyDto(user.getId(),
-                    user.getFirstName() + " " + user.getLastName(), "CLIENT"));
+                    user.getFirstName() + " " + user.getLastName(), UserRole.CLIENT));
         }
 
-        return emptyDto(0L, "Nepoznat", "CLIENT");
+        return emptyDto(0L, "Nepoznat", UserRole.CLIENT);
     }
 
     /**
      * Pokrece obracun i naplatu poreza za sve korisnike koji imaju ordere.
-     * Za svakog korisnika: totalProfit = sum(SELL order profits), taxOwed = 15% * totalProfit (ako > 0).
-     * Neplaceni deo poreza se skida sa korisnikovog RSD racuna i prebacuje na drzavni (bankin) RSD racun.
+     *
+     * Spec (Celina 3 — Porez): "Mi cemo racunati porez na kapitalnu dobit
+     * prilikom prodaje akcija (preko berze i OTC trgovinom)." — pa su
+     * FUTURES i FOREX orderi iskljuceni iz obracuna.
+     *
+     * Za svakog korisnika: totalProfit = sum(STOCK SELL profit - STOCK BUY cost)
+     * konvertovano u RSD po srednjem kursu (bez provizije) — spec, Napomena 2.
+     * Porez = 15% * totalProfit ako je pozitivan, inace 0.
+     * Neplaceni deo se skida sa korisnikovog RSD racuna i ide na drzavni RSD racun.
      */
     @Transactional
     public void calculateTaxForAllUsers() {
         LocalDateTime now = LocalDateTime.now();
-        List<Order> allDoneOrders = orderRepository.findByIsDoneTrue();
+        List<Order> allDoneOrders = orderRepository.findByIsDoneTrue().stream()
+                .filter(o -> o.getListing() != null
+                        && o.getListing().getListingType() == ListingType.STOCK)
+                .collect(Collectors.toList());
 
         // Grupisemo ordere po userId + userRole
         Map<String, List<Order>> grouped = allDoneOrders.stream()
@@ -149,11 +162,11 @@ public class TaxService {
                 totalProfit = totalProfit.add(profitInRsd);
             }
             BigDecimal taxOwed = totalProfit.compareTo(BigDecimal.ZERO) > 0
-                    ? totalProfit.multiply(TAX_RATE).setScale(4, RoundingMode.HALF_UP)
+                    ? totalProfit.multiply(TaxConstants.TAX_RATE).setScale(4, RoundingMode.HALF_UP)
                     : BigDecimal.ZERO;
 
             String userName = resolveUserName(userId, userRole);
-            String userType = "EMPLOYEE".equals(userRole) ? "EMPLOYEE" : "CLIENT";
+            String userType = UserRole.isEmployee(userRole) ? UserRole.EMPLOYEE : UserRole.CLIENT;
 
             TaxRecord record = taxRecordRepository.findByUserIdAndUserType(userId, userType)
                     .orElse(TaxRecord.builder()
@@ -199,7 +212,7 @@ public class TaxService {
 
         // Pronadji korisnikov RSD racun
         List<Account> userAccounts;
-        if ("CLIENT".equals(userType)) {
+        if (UserRole.isClient(userType)) {
             userAccounts = accountRepository.findByClientIdAndStatusOrderByAvailableBalanceDesc(
                     userId, AccountStatus.ACTIVE);
         } else {
@@ -231,19 +244,17 @@ public class TaxService {
     }
 
     /**
-     * Pronalazi valutu ordera na osnovu njegovog listinga (quoteCurrency).
-     * Fallback na "RSD" ako listing ili quoteCurrency nisu dostupni.
+     * Resolve-uje ISO kod valute za listing ordera. Tax modul koristi RSD
+     * kao fallback (sve se svodi na RSD pri obracunu poreza), sto je
+     * razlicito od order flow-a koji padne na USD.
+     *
+     * @see ListingCurrencyResolver#resolveSafe(rs.raf.banka2_bek.stock.model.Listing, String)
      */
     private String resolveOrderCurrency(Order order) {
-        try {
-            if (order.getListing() != null && order.getListing().getQuoteCurrency() != null
-                    && !order.getListing().getQuoteCurrency().isBlank()) {
-                return order.getListing().getQuoteCurrency();
-            }
-        } catch (Exception ignored) {
-            // defensive: listing lazy init moze da pukne u nekim testovima
+        if (order == null || order.getListing() == null) {
+            return "RSD";
         }
-        return "RSD";
+        return ListingCurrencyResolver.resolveSafe(order.getListing(), "RSD");
     }
 
     /**
@@ -266,7 +277,7 @@ public class TaxService {
     }
 
     private String resolveUserName(Long userId, String userRole) {
-        if ("EMPLOYEE".equals(userRole)) {
+        if (UserRole.isEmployee(userRole)) {
             return employeeRepository.findById(userId)
                     .map(e -> e.getFirstName() + " " + e.getLastName())
                     .orElse("Zaposleni #" + userId);

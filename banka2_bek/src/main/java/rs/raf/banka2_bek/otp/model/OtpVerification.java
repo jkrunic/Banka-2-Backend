@@ -28,14 +28,17 @@ public class OtpVerification {
     private LocalDateTime expiresAt;
 
     @Column(nullable = false)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private Integer attempts = 0;
 
     @Column(nullable = false)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private Boolean used = false;
 
     @Column(nullable = false, updatable = false)
+    @org.hibernate.annotations.ColumnDefault("CURRENT_TIMESTAMP")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 

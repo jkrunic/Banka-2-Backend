@@ -13,8 +13,10 @@ import rs.raf.banka2_bek.portfolio.model.Portfolio;
 import rs.raf.banka2_bek.portfolio.repository.PortfolioRepository;
 import rs.raf.banka2_bek.stock.model.Listing;
 import rs.raf.banka2_bek.stock.repository.ListingRepository;
+import rs.raf.banka2_bek.auth.util.UserRole;
 import rs.raf.banka2_bek.tax.model.TaxRecord;
 import rs.raf.banka2_bek.tax.repository.TaxRecordRepository;
+import rs.raf.banka2_bek.tax.util.TaxConstants;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -32,32 +34,37 @@ public class PortfolioService {
     private final TaxRecordRepository taxRecordRepository;
 
     /**
-     * Vraca ID trenutno ulogovanog korisnika na osnovu email-a iz JWT-a.
-     * Proverava clients tabelu (klijenti) i employees tabelu (aktuari/zaposleni),
-     * isto kao OrderServiceImpl.resolveCurrentUser().
+     * Par (userId, userRole) trenutno ulogovanog korisnika. Koristi se za
+     * portfolio upite posto clients.id i employees.id imaju zasebne namespace-ove
+     * koji se mogu preklapati, pa je uloga obavezan diskriminator.
      */
-    private Long getCurrentUserId() {
+    private record OwnerRef(Long userId, String userRole) {}
+
+    private OwnerRef getCurrentOwner() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
 
-        // Prvo proveri klijente (clients tabela)
         var clientOpt = clientRepository.findByEmail(email);
         if (clientOpt.isPresent()) {
-            return clientOpt.get().getId();
+            return new OwnerRef(clientOpt.get().getId(), UserRole.CLIENT);
         }
 
-        // Zatim proveri zaposlene (employees tabela)
-        return employeeRepository.findByEmail(email)
+        Long employeeId = employeeRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Korisnik nije pronadjen: " + email))
                 .getId();
+        return new OwnerRef(employeeId, UserRole.EMPLOYEE);
+    }
+
+    private Long getCurrentUserId() {
+        return getCurrentOwner().userId();
     }
 
     /**
      * Vraca listu portfolio stavki za trenutnog korisnika sa izracunatim profitom.
      */
     public List<PortfolioItemDto> getMyPortfolio() {
-        Long userId = getCurrentUserId();
-        List<Portfolio> portfolios = portfolioRepository.findByUserId(userId);
+        OwnerRef owner = getCurrentOwner();
+        List<Portfolio> portfolios = portfolioRepository.findByUserIdAndUserRole(owner.userId(), owner.userRole());
 
         return portfolios.stream().map(p -> {
             BigDecimal currentPrice = getCurrentPrice(p.getListingId());
@@ -123,15 +130,14 @@ public class PortfolioService {
             totalProfit = totalProfit.add(item.getProfit());
         }
 
-        // Porez na kapitalnu dobit: 15% na pozitivan profit
-        BigDecimal taxRate = new BigDecimal("0.15");
+        // Porez na kapitalnu dobit: 15% na pozitivan profit (spec: Celina 3 - Porez)
         BigDecimal unpaidTax = totalProfit.compareTo(BigDecimal.ZERO) > 0
-                ? totalProfit.multiply(taxRate).setScale(2, RoundingMode.HALF_UP)
+                ? totalProfit.multiply(TaxConstants.TAX_RATE).setScale(2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
         // Dohvati placeni porez iz TaxRecord-a
         BigDecimal paidTaxThisYear = BigDecimal.ZERO;
-        String userType = isEmployee() ? "EMPLOYEE" : "CLIENT";
+        String userType = isEmployee() ? UserRole.EMPLOYEE : UserRole.CLIENT;
         Optional<TaxRecord> taxRecord = taxRecordRepository.findByUserIdAndUserType(userId, userType);
         if (taxRecord.isPresent()) {
             paidTaxThisYear = taxRecord.get().getTaxPaid() != null
@@ -164,12 +170,13 @@ public class PortfolioService {
      */
     @Transactional
     public PortfolioItemDto setPublicQuantity(Long portfolioId, int quantity) {
-        Long userId = getCurrentUserId();
+        OwnerRef owner = getCurrentOwner();
 
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new RuntimeException("Portfolio stavka nije pronadjena: " + portfolioId));
 
-        if (!portfolio.getUserId().equals(userId)) {
+        if (!portfolio.getUserId().equals(owner.userId())
+                || (portfolio.getUserRole() != null && !portfolio.getUserRole().equals(owner.userRole()))) {
             throw new RuntimeException("Nemate pristup ovoj portfolio stavci.");
         }
 

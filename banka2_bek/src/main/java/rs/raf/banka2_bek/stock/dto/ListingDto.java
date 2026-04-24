@@ -76,4 +76,7 @@ public class ListingDto {
 
     @Schema(description = "[FUTURES] Datum izmirenja ugovora")
     private LocalDate settlementDate;
+
+    @Schema(description = "Da li je berza hartije u test modu; true znaci da se cene simuliraju (Alpha Vantage / fixer.io se ne pozivaju).")
+    private Boolean isTestMode;
 }

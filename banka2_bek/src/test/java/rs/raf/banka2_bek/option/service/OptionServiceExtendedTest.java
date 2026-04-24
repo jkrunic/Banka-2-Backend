@@ -39,6 +39,8 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
@@ -71,6 +73,9 @@ class OptionServiceExtendedTest {
                 optionRepository, listingRepository, employeeRepository,
                 actuaryInfoRepository, accountRepository, portfolioRepository,
                 "22200022");
+        // Role-aware lookup delegira na stari findByUserId radi kompatibilnosti.
+        lenient().when(portfolioRepository.findByUserIdAndUserRole(anyLong(), anyString()))
+                .thenAnswer(inv -> portfolioRepository.findByUserId(inv.getArgument(0)));
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────────

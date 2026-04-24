@@ -20,7 +20,7 @@ class PortfolioModelTest {
     @Test
     void allArgsConstructor_setsAll() {
         LocalDateTime now = LocalDateTime.now();
-        Portfolio p = new Portfolio(1L, 10L, 100L, "AAPL", "Apple", "STOCK",
+        Portfolio p = new Portfolio(1L, 10L, "CLIENT", 100L, "AAPL", "Apple", "STOCK",
                 50, new BigDecimal("150.5000"), 5, 10, now);
         assertThat(p.getId()).isEqualTo(1L);
         assertThat(p.getUserId()).isEqualTo(10L);

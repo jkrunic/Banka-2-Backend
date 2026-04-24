@@ -16,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import rs.raf.banka2_bek.berza.repository.ExchangeRepository;
 import rs.raf.banka2_bek.stock.model.Listing;
 import rs.raf.banka2_bek.stock.model.ListingDailyPriceInfo;
 import rs.raf.banka2_bek.stock.model.ListingType;
@@ -40,9 +41,19 @@ class ListingServiceImplTest {
 
     @Mock private ListingRepository listingRepository;
     @Mock private ListingDailyPriceInfoRepository dailyPriceRepository;
+    @Mock private ExchangeRepository exchangeRepository;
 
     @InjectMocks
     private ListingServiceImpl listingService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void stubExchangeRepositoryDefaults() {
+        // Default-no-op stubs — ako test ne brine za test-mode anotaciju,
+        // listing.isTestMode izlazi kao null sto je sasvim ispravno.
+        lenient().when(exchangeRepository.findAll()).thenReturn(List.of());
+        lenient().when(exchangeRepository.findByAcronym(ArgumentMatchers.anyString()))
+                .thenReturn(Optional.empty());
+    }
 
     @AfterEach
     void clearSecurityContext() {

@@ -13,6 +13,8 @@ import rs.raf.banka2_bek.account.repository.AccountRepository;
 import rs.raf.banka2_bek.actuary.model.ActuaryInfo;
 import rs.raf.banka2_bek.actuary.model.ActuaryType;
 import rs.raf.banka2_bek.actuary.repository.ActuaryInfoRepository;
+import rs.raf.banka2_bek.auth.util.UserContext;
+import rs.raf.banka2_bek.auth.util.UserRole;
 import rs.raf.banka2_bek.client.model.Client;
 import rs.raf.banka2_bek.client.repository.ClientRepository;
 import rs.raf.banka2_bek.employee.model.Employee;
@@ -38,8 +40,8 @@ import rs.raf.banka2_bek.berza.service.ExchangeManagementService;
 import rs.raf.banka2_bek.portfolio.model.Portfolio;
 import rs.raf.banka2_bek.portfolio.repository.PortfolioRepository;
 import rs.raf.banka2_bek.stock.model.Listing;
-import rs.raf.banka2_bek.stock.model.ListingType;
 import rs.raf.banka2_bek.stock.repository.ListingRepository;
+import rs.raf.banka2_bek.stock.util.ListingCurrencyResolver;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -85,34 +87,15 @@ public class OrderServiceImpl implements OrderService {
 
         // Step 4: Resolve current user
         UserContext userContext = resolveCurrentUser();
-        boolean isEmployee = "EMPLOYEE".equals(userContext.userRole);
+        boolean isEmployee = UserRole.isEmployee(userContext.userRole());
 
-        // Step 5: Resolve account (bankin za zaposlene, licni za klijente)
-        //         i izracunaj rezervacioni iznos u valuti tog racuna
+        // Step 5: Resolve account (bankin za zaposlene, licni za klijente).
         String listingCurrencyCode = resolveListingCurrency(listing);
-        Account account;
+        Account account = resolveTradingAccount(dto.getAccountId(), isEmployee, listingCurrencyCode);
         Portfolio portfolio = null;
-        if (direction == OrderDirection.BUY) {
-            if (dto.getAccountId() != null) {
-                account = accountRepository.findForUpdateById(dto.getAccountId())
-                        .orElseThrow(() -> new EntityNotFoundException("Racun ne postoji: " + dto.getAccountId()));
-            } else if (isEmployee) {
-                account = bankTradingAccountResolver.resolve(listingCurrencyCode);
-            } else {
-                throw new EntityNotFoundException("Racun ne postoji: null");
-            }
-        } else {
-            // SELL — portfolio rezervacija hartija
-            if (dto.getAccountId() != null) {
-                account = accountRepository.findForUpdateById(dto.getAccountId())
-                        .orElseThrow(() -> new EntityNotFoundException("Racun ne postoji: " + dto.getAccountId()));
-            } else if (isEmployee) {
-                account = bankTradingAccountResolver.resolve(listingCurrencyCode);
-            } else {
-                throw new EntityNotFoundException("Racun ne postoji: null");
-            }
+        if (direction == OrderDirection.SELL) {
             portfolio = portfolioRepository
-                    .findByUserIdAndListingIdForUpdate(userContext.userId, listing.getId())
+                    .findByUserIdAndUserRoleAndListingIdForUpdate(userContext.userId(), userContext.userRole(), listing.getId())
                     .orElseThrow(() -> new InsufficientHoldingsException(
                             "Nemate ovu hartiju u portfoliju"));
             int available = portfolio.getAvailableQuantity();
@@ -125,21 +108,30 @@ public class OrderServiceImpl implements OrderService {
 
         BigDecimal exchangeRate = null;
         BigDecimal totalReservation = null;
+        BigDecimal fxCommission = BigDecimal.ZERO;
         // account je uvek non-null nakon if/else iznad — guard zadrzan iz citljivosti uklonjen
         if (direction == OrderDirection.BUY) {
             String accountCurrencyCode = account.getCurrency().getCode();
-            exchangeRate = currencyConversionService.getRate(listingCurrencyCode, accountCurrencyCode);
-            BigDecimal approxInAccountCurrency = currencyConversionService.convert(
-                    approximatePrice, listingCurrencyCode, accountCurrencyCode);
+            boolean chargeFx = !isEmployee && !listingCurrencyCode.equals(accountCurrencyCode);
+
+            CurrencyConversionService.ConversionResult priceConv = currencyConversionService
+                    .convertForPurchase(approximatePrice, listingCurrencyCode, accountCurrencyCode, chargeFx);
+            exchangeRate = priceConv.midRate();
+            BigDecimal approxInAccountCurrency = priceConv.amount();
+            fxCommission = priceConv.commission();
+
             // Provizija se obracunava u listing (USD-denominovanoj) valuti, zatim se konvertuje
             // u valutu racuna — tako cap od $7/$12 ostaje ispravan za sve kombinacije valuta.
+            // Na FX konverziju provizije ordera takodje se primenjuje menjacnica (ako je obracunata).
             BigDecimal commissionInAccountCurrency;
             if (isEmployee) {
                 commissionInAccountCurrency = BigDecimal.ZERO;
             } else {
                 BigDecimal commissionInListingCurrency = calculateCommissionInListingCurrency(approximatePrice, orderType);
-                commissionInAccountCurrency = currencyConversionService.convert(
-                        commissionInListingCurrency, listingCurrencyCode, accountCurrencyCode);
+                CurrencyConversionService.ConversionResult commConv = currencyConversionService
+                        .convertForPurchase(commissionInListingCurrency, listingCurrencyCode, accountCurrencyCode, chargeFx);
+                commissionInAccountCurrency = commConv.amount();
+                fxCommission = fxCommission.add(commConv.commission());
             }
             totalReservation = approxInAccountCurrency.add(commissionInAccountCurrency)
                     .setScale(4, RoundingMode.HALF_UP);
@@ -161,7 +153,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // Step 7: Determine status
-        OrderStatus status = orderStatusService.determineStatus(userContext.userRole, userContext.userId, approximatePrice);
+        OrderStatus status = orderStatusService.determineStatus(userContext.userRole(), userContext.userId(), approximatePrice);
         String approvedBy = (status == OrderStatus.APPROVED) ? "No need for approval" : null;
 
         // Step 8: Compute afterHours
@@ -169,9 +161,9 @@ public class OrderServiceImpl implements OrderService {
 
         // Step 9: Build and save order
         Order order = OrderMapper.fromCreateDto(dto, listing);
-        order.setUserId(userContext.userId);
+        order.setUserId(userContext.userId());
         // S44 fix: eksplicitno setujemo userRole sa resolved userContext-a
-        order.setUserRole(userContext.userRole);
+        order.setUserRole(userContext.userRole());
         order.setPricePerUnit(pricePerUnit);
         order.setApproximatePrice(approximatePrice);
         order.setStatus(status);
@@ -182,6 +174,7 @@ public class OrderServiceImpl implements OrderService {
             order.setReservedAccountId(account.getId());
             order.setReservedAmount(totalReservation);
             order.setExchangeRate(exchangeRate);
+            order.setFxCommission(fxCommission.compareTo(BigDecimal.ZERO) > 0 ? fxCommission : null);
             // Za agente pisemo bankin racun i na accountId da fill ima referencu
             if (isEmployee) {
                 order.setAccountId(account.getId());
@@ -214,7 +207,7 @@ public class OrderServiceImpl implements OrderService {
         // Step 11: Update agent usedLimit if APPROVED
         if (status == OrderStatus.APPROVED && isEmployee) {
             final BigDecimal limitDelta = totalReservation != null ? totalReservation : approximatePrice;
-            Optional<ActuaryInfo> actuaryOpt = orderStatusService.getAgentInfo(userContext.userId);
+            Optional<ActuaryInfo> actuaryOpt = orderStatusService.getAgentInfo(userContext.userId());
             actuaryOpt.ifPresent(actuary -> {
                 if (actuary.getActuaryType() == ActuaryType.AGENT) {
                     BigDecimal current = actuary.getUsedLimit() != null ? actuary.getUsedLimit() : BigDecimal.ZERO;
@@ -230,25 +223,29 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * Resolve-uje ISO kod valute za dati listing.
-     * Za FOREX koristi baseCurrency, inace mapira iz exchange acronym-a.
-     * Fallback je USD.
+     * Resolve-uje ISO kod valute za dati listing. Delegira na
+     * {@link ListingCurrencyResolver} — jedinstven util koriscen u vise
+     * servisa (tax, OTC).
      */
     private String resolveListingCurrency(Listing listing) {
-        if (listing.getListingType() == ListingType.FOREX && listing.getBaseCurrency() != null) {
-            return listing.getBaseCurrency();
+        return ListingCurrencyResolver.resolve(listing);
+    }
+
+    /**
+     * Zajednicka logika za pronalazenje trading racuna za BUY i SELL orderi:
+     *  - ako je {@code accountId} eksplicitno prosledjen, load-uje se pod lockom;
+     *  - inace ako je korisnik zaposleni, uzima se bankin racun u valuti hartije;
+     *  - inace je to greska (klijent mora navesti racun).
+     */
+    private Account resolveTradingAccount(Long accountId, boolean isEmployee, String listingCurrencyCode) {
+        if (accountId != null) {
+            return accountRepository.findForUpdateById(accountId)
+                    .orElseThrow(() -> new EntityNotFoundException("Racun ne postoji: " + accountId));
         }
-        String exchange = listing.getExchangeAcronym();
-        if (exchange == null) {
-            return "USD";
+        if (isEmployee) {
+            return bankTradingAccountResolver.resolve(listingCurrencyCode);
         }
-        return switch (exchange.toUpperCase()) {
-            case "NYSE", "NASDAQ", "CME" -> "USD";
-            case "LSE" -> "GBP";
-            case "XETRA" -> "EUR";
-            case "BELEX" -> "RSD";
-            default -> "USD";
-        };
+        throw new EntityNotFoundException("Racun ne postoji: null");
     }
 
     /**
@@ -294,7 +291,7 @@ public class OrderServiceImpl implements OrderService {
         // Phase 5.1: Rezervacija sredstava / hartija u trenutku odobravanja.
         // Cena se mogla promeniti izmedju PENDING i sada — koristimo
         // order.approximatePrice kao polaznu tacku (vec izracunato pri createOrder).
-        boolean isEmployee = "EMPLOYEE".equals(order.getUserRole());
+        boolean isEmployee = UserRole.isEmployee(order.getUserRole());
         String listingCurrencyCode = resolveListingCurrency(listing);
         BigDecimal totalReservation = null;
 
@@ -313,12 +310,16 @@ public class OrderServiceImpl implements OrderService {
             }
 
             String accountCurrencyCode = account.getCurrency().getCode();
-            BigDecimal exchangeRate = currencyConversionService.getRate(listingCurrencyCode, accountCurrencyCode);
+            boolean chargeFx = !isEmployee && !listingCurrencyCode.equals(accountCurrencyCode);
             BigDecimal approxInListing = order.getApproximatePrice() != null
                     ? order.getApproximatePrice()
                     : BigDecimal.ZERO;
-            BigDecimal approxInAccountCurrency = currencyConversionService.convert(
-                    approxInListing, listingCurrencyCode, accountCurrencyCode);
+
+            CurrencyConversionService.ConversionResult priceConv = currencyConversionService
+                    .convertForPurchase(approxInListing, listingCurrencyCode, accountCurrencyCode, chargeFx);
+            BigDecimal exchangeRate = priceConv.midRate();
+            BigDecimal approxInAccountCurrency = priceConv.amount();
+            BigDecimal fxCommission = priceConv.commission();
 
             BigDecimal commissionInAccountCurrency;
             if (isEmployee) {
@@ -326,8 +327,10 @@ public class OrderServiceImpl implements OrderService {
             } else {
                 BigDecimal commissionInListing = calculateCommissionInListingCurrency(
                         approxInListing, order.getOrderType());
-                commissionInAccountCurrency = currencyConversionService.convert(
-                        commissionInListing, listingCurrencyCode, accountCurrencyCode);
+                CurrencyConversionService.ConversionResult commConv = currencyConversionService
+                        .convertForPurchase(commissionInListing, listingCurrencyCode, accountCurrencyCode, chargeFx);
+                commissionInAccountCurrency = commConv.amount();
+                fxCommission = fxCommission.add(commConv.commission());
             }
             totalReservation = approxInAccountCurrency.add(commissionInAccountCurrency)
                     .setScale(4, RoundingMode.HALF_UP);
@@ -340,6 +343,7 @@ public class OrderServiceImpl implements OrderService {
             order.setReservedAccountId(account.getId());
             order.setReservedAmount(totalReservation);
             order.setExchangeRate(exchangeRate);
+            order.setFxCommission(fxCommission.compareTo(BigDecimal.ZERO) > 0 ? fxCommission : null);
             if (isEmployee) {
                 order.setAccountId(account.getId());
             }
@@ -347,7 +351,7 @@ public class OrderServiceImpl implements OrderService {
         } else { // SELL
 
             Portfolio portfolio = portfolioRepository
-                    .findByUserIdAndListingIdForUpdate(order.getUserId(), listing.getId())
+                    .findByUserIdAndUserRoleAndListingIdForUpdate(order.getUserId(), order.getUserRole(), listing.getId())
                     .orElseThrow(() -> new InsufficientHoldingsException(
                             "Nemate ovu hartiju u portfoliju"));
             if (portfolio.getAvailableQuantity() < order.getQuantity()) {
@@ -405,13 +409,13 @@ public class OrderServiceImpl implements OrderService {
                 fundReservationService.releaseForBuy(order);
             } else { // SELL
                 Portfolio portfolio = portfolioRepository
-                        .findByUserIdAndListingIdForUpdate(order.getUserId(), order.getListing().getId())
+                        .findByUserIdAndUserRoleAndListingIdForUpdate(order.getUserId(), order.getUserRole(), order.getListing().getId())
                         .orElseThrow(() -> new EntityNotFoundException(
                                 "Portfolio ne postoji za order " + order.getId()));
                 fundReservationService.releaseForSell(order, portfolio);
             }
 
-            if ("EMPLOYEE".equals(order.getUserRole()) && order.getReservedAmount() != null) {
+            if (UserRole.isEmployee(order.getUserRole()) && order.getReservedAmount() != null) {
                 Optional<ActuaryInfo> actuaryOpt = orderStatusService.getAgentInfo(order.getUserId());
                 actuaryOpt.ifPresent(actuary -> {
                     if (actuary.getActuaryType() == ActuaryType.AGENT) {
@@ -491,12 +495,12 @@ public class OrderServiceImpl implements OrderService {
 
         Optional<Client> clientOpt = clientRepository.findByEmail(email);
         if (clientOpt.isPresent()) {
-            return new UserContext(clientOpt.get().getId(), "CLIENT");
+            return new UserContext(clientOpt.get().getId(), UserRole.CLIENT);
         }
 
         Employee employee = employeeRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
-        return new UserContext(employee.getId(), "EMPLOYEE");
+        return new UserContext(employee.getId(), UserRole.EMPLOYEE);
     }
 
     private boolean computeAfterHours(Listing listing) {
@@ -518,7 +522,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private String resolveUserName(Long userId, String userRole) {
-        if ("CLIENT".equals(userRole)) {
+        if (UserRole.isClient(userRole)) {
             return clientRepository.findById(userId)
                     .map(c -> c.getFirstName() + " " + c.getLastName())
                     .orElse("Unknown");
@@ -532,6 +536,4 @@ public class OrderServiceImpl implements OrderService {
         String userName = resolveUserName(order.getUserId(), order.getUserRole());
         return OrderMapper.toDto(order, userName);
     }
-
-    private record UserContext(Long userId, String userRole) {}
 }

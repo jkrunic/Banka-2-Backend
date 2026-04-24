@@ -175,7 +175,8 @@ class OptionServiceTest {
         bankAccount.setBalance(new BigDecimal("10000000.00"));
         bankAccount.setAvailableBalance(new BigDecimal("10000000.00"));
         when(accountRepository.findBankAccountByCurrency("22200022", "USD")).thenReturn(Optional.of(bankAccount));
-        when(portfolioRepository.findByUserId(12L)).thenReturn(java.util.Collections.emptyList());
+        lenient().when(portfolioRepository.findByUserId(12L)).thenReturn(java.util.Collections.emptyList());
+        when(portfolioRepository.findByUserIdAndUserRole(12L, "EMPLOYEE")).thenReturn(java.util.Collections.emptyList());
 
         optionService.exerciseOption(1L, "agent@test.com");
 

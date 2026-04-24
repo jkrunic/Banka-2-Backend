@@ -39,16 +39,19 @@ public class Card {
     private Client client;
 
     @Column(nullable = false, precision = 19, scale = 4)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal cardLimit = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
+    @org.hibernate.annotations.ColumnDefault("'VISA'")
     @Builder.Default
     private CardType cardType = CardType.VISA;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 15)
+    @org.hibernate.annotations.ColumnDefault("'ACTIVE'")
     @Builder.Default
     private CardStatus status = CardStatus.ACTIVE;
 

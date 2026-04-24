@@ -23,6 +23,16 @@ public class CurrencyConversionService {
 
     private static final int SCALE = 4;
 
+    /**
+     * Menjacnica marza (spread + provizija) koja se naplacuje kada klijent
+     * trguje sa racuna u valuti razlicitoj od valute hartije. Zaposleni
+     * ne placaju menjacnicu jer trguju sa bankinih racuna (Celina 3 spec).
+     * Vrednost 1% je konzervativan match za Celina 2 menjacnicu (+2% spread +
+     * 0.5% komisija tamo dolazi na ~2.5%, ali ovde kombinujemo u jedan fee
+     * da bi obracun bio citljiv korisniku).
+     */
+    private static final BigDecimal FX_MARGIN = new BigDecimal("0.01");
+
     private final ExchangeService exchangeService;
 
     /**
@@ -42,6 +52,42 @@ public class CurrencyConversionService {
         BigDecimal rate = getRate(fromCurrency, toCurrency);
         return amount.multiply(rate).setScale(SCALE, RoundingMode.HALF_UP);
     }
+
+    /**
+     * Konvertuje iznos uz opcionu primenu menjacnice (FX marzu).
+     * Kada je {@code chargeFxCommission=true} vracena suma je veca od
+     * mid-rate konverzije za FX_MARGIN procenta i razlika se iskazuje
+     * kao {@code commission} u ciljnoj valuti.
+     *
+     * Za iste valute vraca {@code amount} sa 0 komisijom.
+     */
+    public ConversionResult convertForPurchase(BigDecimal amount, String fromCurrency,
+                                               String toCurrency, boolean chargeFxCommission) {
+        if (fromCurrency.equals(toCurrency)) {
+            return new ConversionResult(amount, BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.ONE);
+        }
+        BigDecimal midRate = getRate(fromCurrency, toCurrency);
+        BigDecimal midAmount = amount.multiply(midRate).setScale(SCALE, RoundingMode.HALF_UP);
+        if (!chargeFxCommission) {
+            return new ConversionResult(midAmount, BigDecimal.ZERO, midRate, midRate);
+        }
+        BigDecimal effectiveRate = midRate.multiply(BigDecimal.ONE.add(FX_MARGIN))
+                .setScale(6, RoundingMode.HALF_UP);
+        BigDecimal grossAmount = amount.multiply(effectiveRate).setScale(SCALE, RoundingMode.HALF_UP);
+        BigDecimal commission = grossAmount.subtract(midAmount).setScale(SCALE, RoundingMode.HALF_UP);
+        return new ConversionResult(grossAmount, commission, effectiveRate, midRate);
+    }
+
+    /**
+     * Rezultat konverzije sa opcionom menjacnickom proviziom.
+     *
+     * @param amount         iznos u ciljnoj valuti (ukljucuje FX proviziju ako je obracunata)
+     * @param commission     FX komisija u ciljnoj valuti (0 za iste valute ili za zaposlene)
+     * @param effectiveRate  stvarni kurs primenjen (mid-rate * (1 + FX_MARGIN) za klijenta)
+     * @param midRate        srednji kurs (fromCurrency -> toCurrency)
+     */
+    public record ConversionResult(BigDecimal amount, BigDecimal commission,
+                                   BigDecimal effectiveRate, BigDecimal midRate) {}
 
     /**
      * Vraca kurs za par valuta: koliko jedinica {@code toCurrency} se dobije za 1 {@code fromCurrency}.

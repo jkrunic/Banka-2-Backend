@@ -49,6 +49,7 @@ public class MarginTransaction {
     private String description;
 
     @Column(name = "created_at", nullable = false, updatable = false)
+    @org.hibernate.annotations.ColumnDefault("CURRENT_TIMESTAMP")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 }

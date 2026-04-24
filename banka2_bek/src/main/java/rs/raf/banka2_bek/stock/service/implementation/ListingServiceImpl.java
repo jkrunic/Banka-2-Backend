@@ -12,6 +12,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import rs.raf.banka2_bek.berza.model.Exchange;
+import rs.raf.banka2_bek.berza.repository.ExchangeRepository;
 import rs.raf.banka2_bek.exchange.ExchangeService;
 import rs.raf.banka2_bek.exchange.dto.ExchangeRateDto;
 import rs.raf.banka2_bek.stock.dto.ListingDailyPriceDto;
@@ -37,6 +39,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -49,6 +52,7 @@ public class ListingServiceImpl implements ListingService {
     private final ListingDailyPriceInfoRepository dailyPriceRepository;
     private final RestTemplate restTemplate;
     private final ExchangeService exchangeService;
+    private final ExchangeRepository exchangeRepository;
 
     @Value("${stock.api.keys:demo}")
     private String stockApiKeys;
@@ -95,10 +99,32 @@ public class ListingServiceImpl implements ListingService {
         }
 
         var pageable = PageRequest.of(page, size, Sort.by("ticker").ascending());
+        Map<String, Boolean> testModeByAcronym = loadExchangeTestModeMap();
         return listingRepository
                 .findAll(ListingSpec.withFilters(listingType, search, exchangePrefix,
                         priceMin, priceMax, settlementDateFrom, settlementDateTo), pageable)
-                .map(ListingMapper::toDto);
+                .map(l -> ListingMapper.toDto(l, testModeByAcronym.get(l.getExchangeAcronym())));
+    }
+
+    /**
+     * Ucitava jedan put sve aktivne berze i vraca mapu acronym -> testMode,
+     * da ne bismo gadjali bazu po svakom listingu.
+     */
+    private Map<String, Boolean> loadExchangeTestModeMap() {
+        return exchangeRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        Exchange::getAcronym,
+                        Exchange::isTestMode,
+                        (a, b) -> a));
+    }
+
+    /**
+     * Proverava da li je berza na kojoj se listing trguje u test modu.
+     * Ako berza ne postoji u mapi (nepoznata), podrazumevano je nije u test modu.
+     * Ocekivani slucaj: svaka listinga je povezana sa seed-ovanom berzom.
+     */
+    private boolean isListingExchangeInTestMode(Listing listing, Map<String, Boolean> testModeMap) {
+        return Boolean.TRUE.equals(testModeMap.get(listing.getExchangeAcronym()));
     }
 
     private boolean isClient() {
@@ -120,7 +146,10 @@ public class ListingServiceImpl implements ListingService {
         if (isClient() && listing.getListingType() == ListingType.FOREX)
             throw new IllegalStateException("Klijenti nemaju pristup FOREX hartijama.");
 
-        return ListingMapper.toDto(listing);
+        Boolean testMode = exchangeRepository.findByAcronym(listing.getExchangeAcronym())
+                .map(Exchange::isTestMode)
+                .orElse(null);
+        return ListingMapper.toDto(listing, testMode);
     }
 
     @Override
@@ -171,6 +200,7 @@ public class ListingServiceImpl implements ListingService {
     @Transactional
     public void refreshPrices() {
         List<Listing> listings = listingRepository.findAll();
+        Map<String, Boolean> testModeByAcronym = loadExchangeTestModeMap();
 
         for (Listing listing : listings) {
             BigDecimal currentPrice = listing.getPrice();
@@ -182,7 +212,21 @@ public class ListingServiceImpl implements ListingService {
             BigDecimal priceChange;
             long newVolume;
 
-            if (listing.getListingType() == ListingType.STOCK) {
+            boolean exchangeInTestMode = isListingExchangeInTestMode(listing, testModeByAcronym);
+
+            if (exchangeInTestMode) {
+                // Test mode: simuliramo cene bez trosenja Alpha Vantage / fixer.io kljuceva
+                double changePercent = 0.98 + (0.04 * random.nextDouble());
+                newPrice = currentPrice.multiply(BigDecimal.valueOf(changePercent))
+                        .setScale(4, RoundingMode.HALF_UP);
+                newAsk = newPrice.multiply(BigDecimal.valueOf(1.002)).setScale(4, RoundingMode.HALF_UP);
+                newBid = newPrice.multiply(BigDecimal.valueOf(0.998)).setScale(4, RoundingMode.HALF_UP);
+                priceChange = newPrice.subtract(currentPrice);
+                newVolume = listing.getVolume() != null
+                        ? (long) (listing.getVolume() * (0.9 + (0.2 * random.nextDouble())))
+                        : 100000L;
+                log.debug("Refreshed {} in test-mode (simulation): price={}", listing.getTicker(), newPrice);
+            } else if (listing.getListingType() == ListingType.STOCK) {
                 // Try Alpha Vantage for stocks
                 BigDecimal[] alphaResult = fetchAlphaVantagePrice(listing.getTicker());
                 if (alphaResult != null) {

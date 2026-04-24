@@ -19,9 +19,17 @@ public final class ListingMapper {
     private ListingMapper() {}
 
     /**
-     * Mapira Listing entitet u ListingDto sa svim izvedenim poljima.
+     * Mapira Listing entitet u ListingDto bez test-mode podatka (ostaje null).
      */
     public static ListingDto toDto(Listing listing) {
+        return toDto(listing, null);
+    }
+
+    /**
+     * Mapira Listing entitet u ListingDto sa eksplicitnom test-mode oznakom
+     * berze na kojoj se hartija trguje.
+     */
+    public static ListingDto toDto(Listing listing, Boolean exchangeTestMode) {
         if (listing == null) return null;
 
         ListingDto dto = new ListingDto();
@@ -55,6 +63,8 @@ public final class ListingMapper {
         dto.setMaintenanceMargin(calculateMaintenanceMargin(listing));
         dto.setInitialMarginCost(calculateInitialMarginCost(listing));
         dto.setMarketCap(calculateMarketCap(listing));
+
+        dto.setIsTestMode(exchangeTestMode);
 
         return dto;
     }

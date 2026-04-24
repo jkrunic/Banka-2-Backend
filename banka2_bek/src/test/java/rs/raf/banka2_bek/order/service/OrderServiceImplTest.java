@@ -49,6 +49,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -156,9 +157,16 @@ class OrderServiceImplTest {
         lenient().when(bankTradingAccountResolver.resolve(anyString())).thenReturn(testBankUsdAccount);
         lenient().when(portfolioRepository.findByUserIdAndListingIdForUpdate(anyLong(), anyLong()))
                 .thenReturn(Optional.of(testPortfolio));
+        // Role-aware metoda delegira na staru kad test-level stub ne kaze drugacije.
+        lenient().when(portfolioRepository.findByUserIdAndUserRoleAndListingIdForUpdate(anyLong(), anyString(), anyLong()))
+                .thenAnswer(inv -> portfolioRepository.findByUserIdAndListingIdForUpdate(inv.getArgument(0), inv.getArgument(2)));
         lenient().when(currencyConversionService.getRate(anyString(), anyString())).thenReturn(BigDecimal.ONE);
         lenient().when(currencyConversionService.convert(any(BigDecimal.class), anyString(), anyString()))
                 .thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(currencyConversionService.convertForPurchase(
+                any(BigDecimal.class), anyString(), anyString(), anyBoolean()))
+                .thenAnswer(inv -> new CurrencyConversionService.ConversionResult(
+                        inv.getArgument(0), BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.ONE));
         // Validation service mora vratiti non-null enum vrednosti inace direction/orderType
         // branching u createOrder preskace BUY/SELL granu i reservedAccountId ostaje null.
         lenient().when(orderValidationService.parseOrderType(anyString())).thenReturn(OrderType.MARKET);
@@ -543,12 +551,26 @@ class OrderServiceImplTest {
             when(listingPriceService.getPricePerUnit(any(), any(), any(), any())).thenReturn(new BigDecimal("151"));
             when(listingPriceService.calculateApproximatePrice(anyInt(), any(), anyInt())).thenReturn(new BigDecimal("755.0000"));
             when(currencyConversionService.getRate("USD", "RSD")).thenReturn(new BigDecimal("109.20"));
-            when(currencyConversionService.convert(eq(new BigDecimal("755.0000")), eq("USD"), eq("RSD")))
-                    .thenReturn(new BigDecimal("82446.0000"));
             when(currencyConversionService.convert(any(BigDecimal.class), eq("USD"), eq("RSD")))
                     .thenAnswer(inv -> {
                         BigDecimal amt = inv.getArgument(0);
                         return amt.multiply(new BigDecimal("109.20")).setScale(4, java.math.RoundingMode.HALF_UP);
+                    });
+            when(currencyConversionService.convertForPurchase(
+                    any(BigDecimal.class), eq("USD"), eq("RSD"), anyBoolean()))
+                    .thenAnswer(inv -> {
+                        BigDecimal amt = inv.getArgument(0);
+                        boolean charge = inv.getArgument(3);
+                        BigDecimal mid = new BigDecimal("109.20");
+                        BigDecimal midAmount = amt.multiply(mid).setScale(4, java.math.RoundingMode.HALF_UP);
+                        if (!charge) {
+                            return new CurrencyConversionService.ConversionResult(
+                                    midAmount, BigDecimal.ZERO, mid, mid);
+                        }
+                        BigDecimal gross = midAmount.multiply(new BigDecimal("1.01"))
+                                .setScale(4, java.math.RoundingMode.HALF_UP);
+                        return new CurrencyConversionService.ConversionResult(
+                                gross, gross.subtract(midAmount).setScale(4, java.math.RoundingMode.HALF_UP), mid, mid);
                     });
             when(orderStatusService.determineStatus(any(), any(), any())).thenReturn(OrderStatus.APPROVED);
             when(orderRepository.save(any())).thenAnswer(inv -> {
@@ -672,6 +694,7 @@ class OrderServiceImplTest {
             when(listingPriceService.getPricePerUnit(any(), any(), any(), any())).thenReturn(new BigDecimal("149"));
             when(listingPriceService.calculateApproximatePrice(anyInt(), any(), anyInt())).thenReturn(new BigDecimal("745.0000"));
             when(portfolioRepository.findByUserIdAndListingIdForUpdate(42L, 1L)).thenReturn(Optional.empty());
+            when(portfolioRepository.findByUserIdAndUserRoleAndListingIdForUpdate(42L, "CLIENT", 1L)).thenReturn(Optional.empty());
 
             assertThrows(rs.raf.banka2_bek.order.exception.InsufficientHoldingsException.class,
                     () -> orderService.createOrder(dto));
@@ -713,6 +736,8 @@ class OrderServiceImplTest {
             when(listingPriceService.getPricePerUnit(any(), any(), any(), any())).thenReturn(new BigDecimal("149"));
             when(listingPriceService.calculateApproximatePrice(anyInt(), any(), anyInt())).thenReturn(new BigDecimal("745.0000"));
             when(portfolioRepository.findByUserIdAndListingIdForUpdate(99L, 1L))
+                    .thenReturn(Optional.of(agentPortfolio));
+            when(portfolioRepository.findByUserIdAndUserRoleAndListingIdForUpdate(99L, "EMPLOYEE", 1L))
                     .thenReturn(Optional.of(agentPortfolio));
             when(orderStatusService.determineStatus(eq("EMPLOYEE"), eq(99L), any())).thenReturn(OrderStatus.APPROVED);
             when(orderStatusService.getAgentInfo(99L)).thenReturn(Optional.of(agentInfo));

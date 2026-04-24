@@ -31,6 +31,11 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByStatusAndIsDoneFalse(OrderStatus status);
 
+    @Query("SELECT o FROM Order o WHERE o.isDone = false " +
+           "AND o.status IN (rs.raf.banka2_bek.order.model.OrderStatus.PENDING, " +
+           "rs.raf.banka2_bek.order.model.OrderStatus.APPROVED)")
+    List<Order> findActiveNonDone();
+
     @Query("SELECT COALESCE(SUM(CASE WHEN o.direction = rs.raf.banka2_bek.order.model.OrderDirection.BUY " +
            "THEN o.quantity ELSE -o.quantity END), 0) FROM Order o " +
            "WHERE o.userId = :userId AND o.listing.id = :listingId AND o.isDone = true")

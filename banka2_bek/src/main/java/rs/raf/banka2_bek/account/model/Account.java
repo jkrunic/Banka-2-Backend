@@ -60,43 +60,51 @@ public class Account {
     // Stanja
 
     @Column(nullable = false, precision = 19, scale = 4)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal balance = BigDecimal.ZERO;           // Ukupno stanje
 
     @Column(nullable = false, precision = 19, scale = 4)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal availableBalance = BigDecimal.ZERO;  // Raspoloživo stanje (balance - rezervisano)
 
     @Column(nullable = false, precision = 19, scale = 4)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal reservedAmount = BigDecimal.ZERO;    // Rezervisano za pending/approved ordere i placanja
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
+    @org.hibernate.annotations.ColumnDefault("'CLIENT'")
     @Builder.Default
     private AccountCategory accountCategory = AccountCategory.CLIENT;
 
-    // Limiti 
+    // Limiti
 
     @Column(nullable = false, precision = 19, scale = 4)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal dailyLimit = BigDecimal.ZERO;        // Dnevni limit plaćanja
 
     @Column(nullable = false, precision = 19, scale = 4)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal monthlyLimit = BigDecimal.ZERO;      // Mesečni limit plaćanja
 
     // Potrošnja (resetuje se schedulovanim jobom)
 
     @Column(nullable = false, precision = 19, scale = 4)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal dailySpending = BigDecimal.ZERO;     // Resetuje se u 00:00
 
     @Column(nullable = false, precision = 19, scale = 4)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private BigDecimal monthlySpending = BigDecimal.ZERO;   // Resetuje se 1. u mesecu
 
-    // Ostalo 
+    // Ostalo
     @Column(precision = 10, scale = 4)
     @Builder.Default
     private BigDecimal maintenanceFee = BigDecimal.ZERO;    // Mesečna naknada
@@ -105,6 +113,7 @@ public class Account {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 15)
+    @org.hibernate.annotations.ColumnDefault("'ACTIVE'")
     @Builder.Default
     private AccountStatus status = AccountStatus.ACTIVE;
 
@@ -112,6 +121,7 @@ public class Account {
     private String name;                                    // Prilagođeni naziv (korisnik može menjati)
 
     @Column(nullable = false, updatable = false)
+    @org.hibernate.annotations.ColumnDefault("CURRENT_TIMESTAMP")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 

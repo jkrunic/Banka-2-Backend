@@ -34,4 +34,8 @@ public class OrderDto {
     private LocalDateTime createdAt;
     private LocalDateTime lastModification;
     private LocalDate listingSettlementDate;
+    /** FX (menjacnica) komisija u valuti racuna; null ili 0 ako konverzija nije bila potrebna. */
+    private BigDecimal fxCommission;
+    /** Kurs listing -> account currency (mid) u trenutku rezervacije/odobravanja. */
+    private BigDecimal exchangeRate;
 }

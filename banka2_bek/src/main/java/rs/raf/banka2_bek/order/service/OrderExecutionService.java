@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rs.raf.banka2_bek.account.model.Account;
 import rs.raf.banka2_bek.account.repository.AccountRepository;
+import rs.raf.banka2_bek.auth.util.UserRole;
 import rs.raf.banka2_bek.order.model.Order;
 import rs.raf.banka2_bek.order.model.OrderDirection;
 import rs.raf.banka2_bek.order.model.OrderStatus;
@@ -16,6 +17,7 @@ import rs.raf.banka2_bek.order.repository.OrderRepository;
 import rs.raf.banka2_bek.portfolio.model.Portfolio;
 import rs.raf.banka2_bek.portfolio.repository.PortfolioRepository;
 import rs.raf.banka2_bek.stock.model.Listing;
+import rs.raf.banka2_bek.stock.model.ListingType;
 import rs.raf.banka2_bek.stock.repository.ListingRepository;
 import rs.raf.banka2_bek.transaction.model.Transaction;
 import rs.raf.banka2_bek.transaction.repository.TransactionRepository;
@@ -39,10 +41,10 @@ import java.util.concurrent.ThreadLocalRandom;
  * STOP i STOP_LIMIT nalozi se ovde NE izvrsavaju — oni se prvo aktiviraju
  * u StopOrderActivationService pa postaju MARKET/LIMIT.
  *
- * Provizije po specifikaciji:
- * - MARKET: max(14% * price, $7)
- * - LIMIT:  max(24% * price, $12)
- * Provizija se uplacuje na racun banke.
+ * Provizije po specifikaciji (manji iznos od dva):
+ * - MARKET: min(14% * price, $7)
+ * - LIMIT:  min(24% * price, $12)
+ * Provizija se uplacuje na racun banke. Za EMPLOYEE ordere provizija je 0.
  */
 @Service
 @RequiredArgsConstructor
@@ -71,11 +73,14 @@ public class OrderExecutionService {
 
     /** Provizija za MARKET naloge: min(14% * price, $7) — spec: "koji iznos je manji" */
     private static final BigDecimal MARKET_COMMISSION_RATE = new BigDecimal("0.14");
-    private static final BigDecimal MARKET_COMMISSION_MAX = new BigDecimal("7");
+    private static final BigDecimal MARKET_COMMISSION_CAP = new BigDecimal("7");
 
     /** Provizija za LIMIT naloge: min(24% * price, $12) — spec: "koji iznos je manji" */
     private static final BigDecimal LIMIT_COMMISSION_RATE = new BigDecimal("0.24");
-    private static final BigDecimal LIMIT_COMMISSION_MAX = new BigDecimal("12");
+    private static final BigDecimal LIMIT_COMMISSION_CAP = new BigDecimal("12");
+
+    /** Menjacnica marza koja se naplacuje klijentu na SELL kad konvertuje u drugu valutu. */
+    private static final BigDecimal SELL_FX_MARGIN = new BigDecimal("0.01");
 
     @Transactional
     public void executeOrders() {
@@ -190,30 +195,44 @@ public class OrderExecutionService {
             fillQuantity = order.getQuantity(); // AON mora sve
         }
 
-        // 4. Izračun ukupne cene i provizije
+        // 4. Izračun ukupne cene i provizije (sve u valuti listinga)
         BigDecimal contractSize = BigDecimal.valueOf(order.getContractSize());
-        BigDecimal totalPrice = executionPrice.multiply(BigDecimal.valueOf(fillQuantity)).multiply(contractSize)
+        BigDecimal totalPriceInListing = executionPrice.multiply(BigDecimal.valueOf(fillQuantity))
+                .multiply(contractSize)
                 .setScale(4, RoundingMode.HALF_UP);
 
-        // Provizija se ne naplaćuje ako zaposleni trguje u ime banke
-        BigDecimal commission = "EMPLOYEE".equals(order.getUserRole())
+        boolean isEmployee = UserRole.isEmployee(order.getUserRole());
+        BigDecimal commissionInListing = isEmployee
                 ? BigDecimal.ZERO
-                : calculateCommission(totalPrice, order.getOrderType());
+                : calculateCommission(totalPriceInListing, order.getOrderType());
+
+        // Konverzija u valutu racuna. Za single-currency orderi (exchangeRate=1 ili null)
+        // se ponasa kao pre.
+        BigDecimal midRate = order.getExchangeRate() != null ? order.getExchangeRate() : BigDecimal.ONE;
+        BigDecimal totalPriceInAccount = totalPriceInListing.multiply(midRate)
+                .setScale(4, RoundingMode.HALF_UP);
+        BigDecimal commissionInAccount = commissionInListing.multiply(midRate)
+                .setScale(4, RoundingMode.HALF_UP);
 
         // 5. Finansijske operacije preko FundReservationService (Phase 6 rewire).
         //    Exception se propagira i @Transactional radi rollback.
         if (order.getDirection() == OrderDirection.BUY) {
-            // BUY: consumeForBuyFill skida realan fill price + commission sa balance-a
-            // i proporcionalno oslobadja deo rezervacije.
-            BigDecimal totalDebit = totalPrice.add(commission);
+            // Pro-rata FX komisija za ovaj fill (iz order.fxCommission koji je bio
+            // rezervisan pri kreiranju/odobravanju). 0 za zaposlene ili single-currency.
+            BigDecimal fxForFill = proRataFxCommission(order, fillQuantity);
+            BigDecimal totalDebit = totalPriceInAccount.add(commissionInAccount).add(fxForFill)
+                    .setScale(4, RoundingMode.HALF_UP);
             fundReservationService.consumeForBuyFill(order, fillQuantity, totalDebit);
-            creditBankCommission(order, commission);
+            // Bank prihod = order commission + FX commission (oboje u valuti racuna/banke).
+            creditBankCommission(order, commissionInAccount.add(fxForFill));
             updatePortfolio(order, fillQuantity, executionPrice);
         } else {
             // SELL: consumeForSellFill skida qty iz portfolia i reservedQuantity.
-            // Novac (totalPrice - commission) ide na racun naloga (reservedAccountId),
-            // commission na bankin racun.
-            Portfolio portfolio = portfolioRepository.findByUserId(order.getUserId()).stream()
+            // Prihod (totalPrice - commission) ide na racun naloga (reservedAccountId).
+            // Za klijenta sa razlicitom valutom racuna, jos 1% bankovske menjacnice
+            // se skida pre isplate (spec: "prilikom konverzije uzimamo proviziju").
+            Portfolio portfolio = portfolioRepository
+                    .findByUserIdAndUserRole(order.getUserId(), order.getUserRole()).stream()
                     .filter(p -> p.getListingId().equals(order.getListing().getId()))
                     .findFirst()
                     .orElseThrow(() -> new IllegalStateException(
@@ -228,12 +247,21 @@ public class OrderExecutionService {
                     .orElseThrow(() -> new RuntimeException(
                             "Receiving account not found for SELL order #" + order.getId()));
 
-            BigDecimal netRevenue = totalPrice.subtract(commission);
-            receivingAccount.setBalance(receivingAccount.getBalance().add(netRevenue));
-            receivingAccount.setAvailableBalance(receivingAccount.getAvailableBalance().add(netRevenue));
+            BigDecimal netRevenueInAccount = totalPriceInAccount.subtract(commissionInAccount);
+
+            boolean multiCurrency = midRate.compareTo(BigDecimal.ONE) != 0
+                    && order.getListing().getListingType() != ListingType.FOREX;
+            BigDecimal fxFee = BigDecimal.ZERO;
+            if (!isEmployee && multiCurrency) {
+                fxFee = netRevenueInAccount.multiply(SELL_FX_MARGIN).setScale(4, RoundingMode.HALF_UP);
+                netRevenueInAccount = netRevenueInAccount.subtract(fxFee);
+            }
+
+            receivingAccount.setBalance(receivingAccount.getBalance().add(netRevenueInAccount));
+            receivingAccount.setAvailableBalance(receivingAccount.getAvailableBalance().add(netRevenueInAccount));
             accountRepository.save(receivingAccount);
 
-            creditBankCommission(order, commission);
+            creditBankCommission(order, commissionInAccount.add(fxFee));
         }
         createFillTransaction(order, fillQuantity, executionPrice);
 
@@ -249,9 +277,9 @@ public class OrderExecutionService {
         }
         orderRepository.save(order);
 
-        log.info("Order #{} filled {} of {} @ {} (remaining: {}, commission: {})",
+        log.info("Order #{} filled {} of {} @ {} (remaining: {}, orderComm: {}, listingCcy)",
                 order.getId(), fillQuantity, order.getQuantity(),
-                executionPrice, order.getRemainingPortions(), commission);
+                executionPrice, order.getRemainingPortions(), commissionInListing);
     }
 
     /**
@@ -266,7 +294,8 @@ public class OrderExecutionService {
             if (order.getDirection() == OrderDirection.BUY) {
                 fundReservationService.releaseForBuy(order);
             } else {
-                Portfolio portfolio = portfolioRepository.findByUserId(order.getUserId()).stream()
+                Portfolio portfolio = portfolioRepository
+                        .findByUserIdAndUserRole(order.getUserId(), order.getUserRole()).stream()
                         .filter(p -> p.getListingId().equals(order.getListing().getId()))
                         .findFirst()
                         .orElse(null);
@@ -331,7 +360,8 @@ public class OrderExecutionService {
      * Zato ovde tretiramo samo BUY (quantity > 0).
      */
     private void updatePortfolio(Order order, int quantity, BigDecimal price) {
-        Optional<Portfolio> existing = portfolioRepository.findByUserId(order.getUserId())
+        Optional<Portfolio> existing = portfolioRepository
+                .findByUserIdAndUserRole(order.getUserId(), order.getUserRole())
                 .stream()
                 .filter(p -> p.getListingId().equals(order.getListing().getId()))
                 .findFirst();
@@ -352,6 +382,7 @@ public class OrderExecutionService {
         } else {
             Portfolio portfolio = new Portfolio();
             portfolio.setUserId(order.getUserId());
+            portfolio.setUserRole(order.getUserRole());
             portfolio.setListingId(order.getListing().getId());
             portfolio.setListingTicker(order.getListing().getTicker());
             portfolio.setListingName(order.getListing().getName());
@@ -370,10 +401,28 @@ public class OrderExecutionService {
      */
     private BigDecimal calculateCommission(BigDecimal totalPrice, OrderType orderType) {
         if (orderType == OrderType.MARKET) {
-            return totalPrice.multiply(MARKET_COMMISSION_RATE).min(MARKET_COMMISSION_MAX);
+            return totalPrice.multiply(MARKET_COMMISSION_RATE).min(MARKET_COMMISSION_CAP);
         } else {
-            return totalPrice.multiply(LIMIT_COMMISSION_RATE).min(LIMIT_COMMISSION_MAX);
+            return totalPrice.multiply(LIMIT_COMMISSION_RATE).min(LIMIT_COMMISSION_CAP);
         }
+    }
+
+    /**
+     * Pro-rata deo ukupne FX provizije ordera za jedan fill.
+     * Vraca ZERO ako FX provizija nije obracunata (zaposleni / iste valute)
+     * ili ako je quantity <= 0.
+     */
+    private BigDecimal proRataFxCommission(Order order, int fillQuantity) {
+        BigDecimal totalFx = order.getFxCommission();
+        if (totalFx == null || totalFx.signum() <= 0) {
+            return BigDecimal.ZERO;
+        }
+        Integer totalQty = order.getQuantity();
+        if (totalQty == null || totalQty <= 0) {
+            return BigDecimal.ZERO;
+        }
+        return totalFx.multiply(BigDecimal.valueOf(fillQuantity))
+                .divide(BigDecimal.valueOf(totalQty), 4, RoundingMode.HALF_UP);
     }
 
     /**

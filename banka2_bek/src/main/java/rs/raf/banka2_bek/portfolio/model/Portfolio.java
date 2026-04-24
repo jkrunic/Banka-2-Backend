@@ -23,9 +23,19 @@ public class Portfolio {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** ID korisnika (users tabela) koji poseduje hartije. */
+    /**
+     * ID korisnika koji poseduje hartije.
+     * - Za CLIENT: {@code clients.id}
+     * - Za EMPLOYEE: {@code employees.id}
+     * Kombinacija (userId, userRole) je jedinstvena oznaka vlasnika, posto
+     * clients i employees imaju nezavisne ID prostore koji se preklapaju.
+     */
     @Column(nullable = false)
     private Long userId;
+
+    /** Uloga vlasnika — "CLIENT" ili "EMPLOYEE". Odvaja preklapajuce ID namespaces. */
+    @Column(name = "user_role", nullable = false, length = 16)
+    private String userRole;
 
     /** ID listinga (listings tabela) — hartija od vrednosti. */
     @Column(nullable = false)
@@ -53,10 +63,12 @@ public class Portfolio {
 
     /** Broj hartija koje su javno vidljive za OTC trgovinu. */
     @Column(nullable = false)
+    @org.hibernate.annotations.ColumnDefault("0")
     private Integer publicQuantity = 0;
 
     /** Rezervisana kolicina (za pending SELL ordere). Default 0. */
     @Column(nullable = false)
+    @org.hibernate.annotations.ColumnDefault("0")
     private Integer reservedQuantity = 0;
 
     /** Datum poslednje izmene. */

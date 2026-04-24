@@ -50,7 +50,9 @@ public class OrderController {
         Map<String, Object> otpResult = otpService.verify(email, dto.getOtpCode());
         if (!Boolean.TRUE.equals(otpResult.get("verified"))) {
             String message = (String) otpResult.getOrDefault("message", "Verifikacija neuspesna");
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", message));
+            Map<String, Object> body = new java.util.HashMap<>(otpResult);
+            body.put("error", message);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
         }
 
         OrderDto response = orderService.createOrder(dto);

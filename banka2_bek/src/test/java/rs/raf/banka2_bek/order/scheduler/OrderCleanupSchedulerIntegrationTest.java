@@ -43,7 +43,7 @@ public class OrderCleanupSchedulerIntegrationTest {
         IntegrationTestCleanup.truncateAllTables(dataSource);
     }
 
-    private Listing savedListing() {
+    private Listing savedListing(java.time.LocalDate settlementDate) {
         Listing l = new Listing();
         l.setTicker("AAPL");
         l.setName("Apple Inc.");
@@ -53,14 +53,20 @@ public class OrderCleanupSchedulerIntegrationTest {
         l.setBid(BigDecimal.valueOf(149));
         l.setExchangeAcronym("NASDAQ");
         l.setLastRefresh(LocalDateTime.now());
+        l.setSettlementDate(settlementDate);
         return listingRepository.save(l);
     }
 
     private Order savedOrder(OrderStatus status, LocalDateTime lastModification) {
+        return savedOrder(status, lastModification, null);
+    }
+
+    private Order savedOrder(OrderStatus status, LocalDateTime lastModification,
+                             java.time.LocalDate settlementDate) {
         Order o = new Order();
         o.setUserId(1L);
         o.setUserRole("CLIENT");
-        o.setListing(savedListing());
+        o.setListing(savedListing(settlementDate));
         o.setOrderType(OrderType.MARKET);
         o.setDirection(OrderDirection.BUY);
         o.setQuantity(5);
@@ -80,7 +86,9 @@ public class OrderCleanupSchedulerIntegrationTest {
 
     @Test
     void cleanupExpiredOrders_shouldDeclineExpiredOrder() {
-        Order order = savedOrder(OrderStatus.APPROVED, LocalDateTime.now().minusDays(2));
+        Order order = savedOrder(OrderStatus.APPROVED,
+                LocalDateTime.now().minusDays(2),
+                java.time.LocalDate.now().minusDays(1));
 
         orderCleanupScheduler.cleanupExpiredOrders();
 

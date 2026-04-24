@@ -82,6 +82,7 @@ public class GlobalSecurityConfig  {
                         .requestMatchers(HttpMethod.POST, "/margin-accounts/*/withdraw").hasRole("CLIENT")
                         .requestMatchers(HttpMethod.POST, "/margin-accounts/*/deposit").hasRole("CLIENT")
                         .requestMatchers("/margin-accounts/**").authenticated()
+                        .requestMatchers("/otc/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .formLogin(AbstractHttpConfigurer::disable)

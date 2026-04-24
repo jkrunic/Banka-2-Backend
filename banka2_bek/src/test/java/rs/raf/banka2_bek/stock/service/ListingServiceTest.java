@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import rs.raf.banka2_bek.berza.repository.ExchangeRepository;
 import rs.raf.banka2_bek.stock.model.Listing;
 import rs.raf.banka2_bek.stock.repository.ListingDailyPriceInfoRepository;
 import rs.raf.banka2_bek.stock.repository.ListingRepository;
@@ -28,6 +29,9 @@ class ListingServiceTest {
     @Mock
     private ListingDailyPriceInfoRepository dailyPriceRepository;
 
+    @Mock
+    private ExchangeRepository exchangeRepository;
+
     @InjectMocks
     private ListingServiceImpl listingService;
 
@@ -41,6 +45,7 @@ class ListingServiceTest {
         mockListing.setLastRefresh(LocalDateTime.now().minusHours(1));
 
         when(listingRepository.findAll()).thenReturn(List.of(mockListing));
+        when(exchangeRepository.findAll()).thenReturn(Collections.emptyList());
         when(dailyPriceRepository.findByListingIdAndDate(any(), any())).thenReturn(Collections.emptyList());
 
         // 2. Izvršavanje tvoje metode

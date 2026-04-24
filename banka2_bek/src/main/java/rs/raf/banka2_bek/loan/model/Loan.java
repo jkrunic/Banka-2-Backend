@@ -64,6 +64,7 @@ public class Loan {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
+    @org.hibernate.annotations.ColumnDefault("'ACTIVE'")
     @Builder.Default
     private LoanStatus status = LoanStatus.ACTIVE;
 
@@ -79,6 +80,7 @@ public class Loan {
     private String loanPurpose;
 
     @Column(nullable = false, updatable = false)
+    @org.hibernate.annotations.ColumnDefault("CURRENT_TIMESTAMP")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 }

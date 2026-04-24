@@ -45,6 +45,7 @@ public class LoanInstallment {
 
     private LocalDate actualDueDate;
 
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private Boolean paid = false;
 }

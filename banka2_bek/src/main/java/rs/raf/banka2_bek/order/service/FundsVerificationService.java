@@ -22,7 +22,13 @@ public class FundsVerificationService {
     private final AccountRepository accountRepository;
     private final PortfolioRepository portfolioRepository;
 
+    /** @deprecated Koristiti {@link #verify(CreateOrderDto, Long, String, BigDecimal, Listing, OrderType, OrderDirection)}. */
+    @Deprecated
     public void verify(CreateOrderDto dto, Long userId, BigDecimal approximatePrice, Listing listing, OrderType orderType, OrderDirection direction) {
+        verify(dto, userId, rs.raf.banka2_bek.auth.util.UserRole.CLIENT, approximatePrice, listing, orderType, direction);
+    }
+
+    public void verify(CreateOrderDto dto, Long userId, String userRole, BigDecimal approximatePrice, Listing listing, OrderType orderType, OrderDirection direction) {
         Account account = accountRepository.findById(dto.getAccountId())
                 .orElseThrow(() -> new IllegalArgumentException("Account not found"));
 
@@ -33,7 +39,7 @@ public class FundsVerificationService {
         if (direction == OrderDirection.BUY) {
             verifyBuy(account, approximatePrice, orderType);
         } else {
-            verifySell(userId, listing, dto.getQuantity());
+            verifySell(userId, userRole, listing, dto.getQuantity());
         }
     }
 
@@ -80,9 +86,9 @@ public class FundsVerificationService {
         };
     }
 
-    private void verifySell(Long userId, Listing listing, int quantity) {
+    private void verifySell(Long userId, String userRole, Listing listing, int quantity) {
         // Check actual portfolio holdings (not just completed orders)
-        int currentHolding = portfolioRepository.findByUserId(userId).stream()
+        int currentHolding = portfolioRepository.findByUserIdAndUserRole(userId, userRole).stream()
                 .filter(p -> p.getListingId().equals(listing.getId()))
                 .mapToInt(Portfolio::getQuantity)
                 .sum();

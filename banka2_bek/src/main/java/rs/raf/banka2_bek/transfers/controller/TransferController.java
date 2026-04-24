@@ -32,7 +32,7 @@ public class TransferController {
      * OTP kod MORA biti validan - verifikuje se pre izvrsavanja transfera.
      */
     @PostMapping("/internal")
-    public ResponseEntity<TransferResponseDto> internalTransfer(
+    public ResponseEntity<?> internalTransfer(
             @Valid @RequestBody TransferInternalRequestDto request,
             Authentication auth) {
 
@@ -42,7 +42,7 @@ public class TransferController {
 
         Map<String, Object> otpResult = otpService.verify(email, request.getOtpCode());
         if (!Boolean.TRUE.equals(otpResult.get("verified"))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(otpResult);
         }
 
         // 2. Servis radi auto-detect same vs FX i izvrsava sa pessimistic lock
@@ -54,7 +54,7 @@ public class TransferController {
      * OTP kod MORA biti validan.
      */
     @PostMapping("/fx")
-    public ResponseEntity<TransferResponseDto> fxTransfer(
+    public ResponseEntity<?> fxTransfer(
             @Valid @RequestBody TransferFxRequestDto request,
             Authentication auth) {
 
@@ -63,7 +63,7 @@ public class TransferController {
 
         Map<String, Object> otpResult = otpService.verify(email, request.getOtpCode());
         if (!Boolean.TRUE.equals(otpResult.get("verified"))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(otpResult);
         }
 
         return ResponseEntity.ok(transferService.fxTransfer(request));

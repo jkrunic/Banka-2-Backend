@@ -75,6 +75,8 @@ class TaxServiceCoverageTest {
         Listing l = new Listing();
         l.setId(id);
         l.setQuoteCurrency(quote);
+        // Porez se obracunava samo na STOCK (Celina 3 spec)
+        l.setListingType(rs.raf.banka2_bek.stock.model.ListingType.STOCK);
         return l;
     }
 
@@ -323,6 +325,8 @@ class TaxServiceCoverageTest {
         Listing l = new Listing();
         l.setId(1L);
         l.setQuoteCurrency(null); // explicit null
+        l.setListingType(rs.raf.banka2_bek.stock.model.ListingType.STOCK);
+        l.setExchangeAcronym("BELEX"); // BELEX → RSD, izbegava USD konverziju
         Order sell = order(1L, "CLIENT", l, OrderDirection.SELL, "500", 1);
 
         when(orderRepository.findByIsDoneTrue()).thenReturn(List.of(sell));
@@ -342,6 +346,8 @@ class TaxServiceCoverageTest {
         Listing l = new Listing();
         l.setId(1L);
         l.setQuoteCurrency("   ");
+        l.setListingType(rs.raf.banka2_bek.stock.model.ListingType.STOCK);
+        l.setExchangeAcronym("BELEX");
         Order sell = order(1L, "CLIENT", l, OrderDirection.SELL, "500", 1);
 
         when(orderRepository.findByIsDoneTrue()).thenReturn(List.of(sell));

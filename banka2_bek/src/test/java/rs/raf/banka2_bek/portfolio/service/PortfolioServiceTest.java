@@ -73,6 +73,7 @@ class PortfolioServiceTest {
         Portfolio p = new Portfolio();
         p.setId(id);
         p.setUserId(userId);
+        p.setUserRole("CLIENT");
         p.setListingId(listingId);
         p.setListingTicker(ticker);
         p.setListingName(ticker + " Inc");
@@ -102,7 +103,7 @@ class PortfolioServiceTest {
         @DisplayName("returns empty list when user has no portfolio")
         void emptyPortfolio() {
             authenticateAs("user@test.com", 1L);
-            when(portfolioRepository.findByUserId(1L)).thenReturn(Collections.emptyList());
+            when(portfolioRepository.findByUserIdAndUserRole(1L, "CLIENT")).thenReturn(Collections.emptyList());
 
             List<PortfolioItemDto> result = portfolioService.getMyPortfolio();
 
@@ -114,7 +115,7 @@ class PortfolioServiceTest {
         void profitWhenPriceIncreased() {
             authenticateAs("user@test.com", 1L);
             Portfolio p = buildPortfolio(1L, 1L, 10L, "AAPL", 10, new BigDecimal("100.00"));
-            when(portfolioRepository.findByUserId(1L)).thenReturn(List.of(p));
+            when(portfolioRepository.findByUserIdAndUserRole(1L, "CLIENT")).thenReturn(List.of(p));
             when(listingRepository.findById(10L)).thenReturn(Optional.of(buildListing(10L, new BigDecimal("120.00"))));
 
             List<PortfolioItemDto> result = portfolioService.getMyPortfolio();
@@ -133,7 +134,7 @@ class PortfolioServiceTest {
         void negativeProfitWhenPriceDecreased() {
             authenticateAs("user@test.com", 1L);
             Portfolio p = buildPortfolio(1L, 1L, 10L, "AAPL", 5, new BigDecimal("150.00"));
-            when(portfolioRepository.findByUserId(1L)).thenReturn(List.of(p));
+            when(portfolioRepository.findByUserIdAndUserRole(1L, "CLIENT")).thenReturn(List.of(p));
             when(listingRepository.findById(10L)).thenReturn(Optional.of(buildListing(10L, new BigDecimal("130.00"))));
 
             List<PortfolioItemDto> result = portfolioService.getMyPortfolio();
@@ -149,7 +150,7 @@ class PortfolioServiceTest {
         void listingNotFound_zeroPriceUsed() {
             authenticateAs("user@test.com", 1L);
             Portfolio p = buildPortfolio(1L, 1L, 999L, "GONE", 10, new BigDecimal("50.00"));
-            when(portfolioRepository.findByUserId(1L)).thenReturn(List.of(p));
+            when(portfolioRepository.findByUserIdAndUserRole(1L, "CLIENT")).thenReturn(List.of(p));
             when(listingRepository.findById(999L)).thenReturn(Optional.empty());
 
             List<PortfolioItemDto> result = portfolioService.getMyPortfolio();
@@ -163,7 +164,7 @@ class PortfolioServiceTest {
             authenticateAs("user@test.com", 1L);
             Portfolio p = buildPortfolio(1L, 1L, 10L, "NULL", 5, new BigDecimal("100.00"));
             Listing listing = buildListing(10L, null);
-            when(portfolioRepository.findByUserId(1L)).thenReturn(List.of(p));
+            when(portfolioRepository.findByUserIdAndUserRole(1L, "CLIENT")).thenReturn(List.of(p));
             when(listingRepository.findById(10L)).thenReturn(Optional.of(listing));
 
             List<PortfolioItemDto> result = portfolioService.getMyPortfolio();
@@ -176,7 +177,7 @@ class PortfolioServiceTest {
         void zeroAverageBuyPrice_noDivisionError() {
             authenticateAs("user@test.com", 1L);
             Portfolio p = buildPortfolio(1L, 1L, 10L, "FREE", 10, BigDecimal.ZERO);
-            when(portfolioRepository.findByUserId(1L)).thenReturn(List.of(p));
+            when(portfolioRepository.findByUserIdAndUserRole(1L, "CLIENT")).thenReturn(List.of(p));
             when(listingRepository.findById(10L)).thenReturn(Optional.of(buildListing(10L, new BigDecimal("50.00"))));
 
             List<PortfolioItemDto> result = portfolioService.getMyPortfolio();
@@ -190,7 +191,7 @@ class PortfolioServiceTest {
             authenticateAs("user@test.com", 1L);
             Portfolio p1 = buildPortfolio(1L, 1L, 10L, "AAPL", 10, new BigDecimal("100.00"));
             Portfolio p2 = buildPortfolio(2L, 1L, 20L, "MSFT", 5, new BigDecimal("200.00"));
-            when(portfolioRepository.findByUserId(1L)).thenReturn(List.of(p1, p2));
+            when(portfolioRepository.findByUserIdAndUserRole(1L, "CLIENT")).thenReturn(List.of(p1, p2));
             when(listingRepository.findById(10L)).thenReturn(Optional.of(buildListing(10L, new BigDecimal("110.00"))));
             when(listingRepository.findById(20L)).thenReturn(Optional.of(buildListing(20L, new BigDecimal("220.00"))));
 
@@ -211,7 +212,7 @@ class PortfolioServiceTest {
         void positiveProfitWithTax() {
             authenticateAs("user@test.com", 1L);
             Portfolio p = buildPortfolio(1L, 1L, 10L, "AAPL", 10, new BigDecimal("100.00"));
-            when(portfolioRepository.findByUserId(1L)).thenReturn(List.of(p));
+            when(portfolioRepository.findByUserIdAndUserRole(1L, "CLIENT")).thenReturn(List.of(p));
             when(listingRepository.findById(10L)).thenReturn(Optional.of(buildListing(10L, new BigDecimal("120.00"))));
 
             PortfolioSummaryDto summary = portfolioService.getSummary();
@@ -230,7 +231,7 @@ class PortfolioServiceTest {
         void noTaxOnLoss() {
             authenticateAs("user@test.com", 1L);
             Portfolio p = buildPortfolio(1L, 1L, 10L, "AAPL", 10, new BigDecimal("150.00"));
-            when(portfolioRepository.findByUserId(1L)).thenReturn(List.of(p));
+            when(portfolioRepository.findByUserIdAndUserRole(1L, "CLIENT")).thenReturn(List.of(p));
             when(listingRepository.findById(10L)).thenReturn(Optional.of(buildListing(10L, new BigDecimal("130.00"))));
 
             PortfolioSummaryDto summary = portfolioService.getSummary();
@@ -244,7 +245,7 @@ class PortfolioServiceTest {
         @DisplayName("empty portfolio returns zeros")
         void emptyPortfolioSummary() {
             authenticateAs("user@test.com", 1L);
-            when(portfolioRepository.findByUserId(1L)).thenReturn(Collections.emptyList());
+            when(portfolioRepository.findByUserIdAndUserRole(1L, "CLIENT")).thenReturn(Collections.emptyList());
 
             PortfolioSummaryDto summary = portfolioService.getSummary();
 

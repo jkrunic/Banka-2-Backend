@@ -99,6 +99,7 @@ public class Order {
     @Column(name = "reserved_amount", precision = 19, scale = 4)
     private BigDecimal reservedAmount;
 
+    @org.hibernate.annotations.ColumnDefault("0")
     @Column(name = "reservation_released", nullable = false)
     private boolean reservationReleased = false;
 
@@ -108,4 +109,12 @@ public class Order {
     /** Kurs u trenutku rezervacije (listing currency -> account currency). */
     @Column(name = "exchange_rate", precision = 19, scale = 6)
     private BigDecimal exchangeRate;
+
+    /**
+     * FX komisija naplacena od klijenta kada trguje hartijom u valuti
+     * razlicitoj od valute izabranog racuna. Izrazena u valuti racuna.
+     * Za zaposlene (bankini racuni) i za iste valute je uvek 0.
+     */
+    @Column(name = "fx_commission", precision = 19, scale = 4)
+    private BigDecimal fxCommission;
 }

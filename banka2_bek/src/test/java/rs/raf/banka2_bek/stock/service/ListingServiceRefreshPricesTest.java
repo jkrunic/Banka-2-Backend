@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.client.RestTemplate;
+import rs.raf.banka2_bek.berza.repository.ExchangeRepository;
 import rs.raf.banka2_bek.exchange.ExchangeService;
 import rs.raf.banka2_bek.exchange.dto.ExchangeRateDto;
 import rs.raf.banka2_bek.stock.model.Listing;
@@ -43,6 +44,7 @@ class ListingServiceRefreshPricesTest {
     @Mock private ListingDailyPriceInfoRepository dailyPriceRepository;
     @Mock private RestTemplate restTemplate;
     @Mock private ExchangeService exchangeService;
+    @Mock private ExchangeRepository exchangeRepository;
 
     @InjectMocks
     private ListingServiceImpl listingService;
@@ -51,6 +53,9 @@ class ListingServiceRefreshPricesTest {
     void setUpApiKeys() {
         org.springframework.test.util.ReflectionTestUtils.setField(listingService, "stockApiKeys", "test-key-1,test-key-2");
         org.springframework.test.util.ReflectionTestUtils.setField(listingService, "stockApiUrl", "https://www.alphavantage.co/query");
+        // Po default-u nijedna berza nije u test modu — testovi koji zele
+        // simulirati test mode stub-uju eksplicitno.
+        lenient().when(exchangeRepository.findAll()).thenReturn(java.util.Collections.emptyList());
     }
 
     @AfterEach

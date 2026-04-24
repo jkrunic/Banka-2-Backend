@@ -19,6 +19,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import rs.raf.banka2_bek.berza.repository.ExchangeRepository;
 import rs.raf.banka2_bek.exchange.ExchangeService;
 import rs.raf.banka2_bek.exchange.dto.ExchangeRateDto;
 import rs.raf.banka2_bek.stock.model.Listing;
@@ -59,6 +60,7 @@ class ListingServiceImplCoverageTest {
     @Mock private ListingDailyPriceInfoRepository dailyPriceRepository;
     @Mock private RestTemplate restTemplate;
     @Mock private ExchangeService exchangeService;
+    @Mock private ExchangeRepository exchangeRepository;
 
     @InjectMocks
     private ListingServiceImpl listingService;
@@ -68,6 +70,12 @@ class ListingServiceImplCoverageTest {
         // Use short delay in tests if possible — set api keys so round-robin works
         ReflectionTestUtils.setField(listingService, "stockApiKeys", "KEY1,KEY2,KEY3");
         ReflectionTestUtils.setField(listingService, "stockApiUrl", "https://test.local/query");
+        // Refresh/mapping paths vrticemo u pretpostavci "test mode ugasen" osim
+        // kad test eksplicitno postavi drugacije — ovo cuva ponasanje ranijih scenarija
+        // koji gadjaju Alpha Vantage/fixer kodne staze.
+        when(exchangeRepository.findAll()).thenReturn(java.util.Collections.emptyList());
+        when(exchangeRepository.findByAcronym(ArgumentMatchers.anyString()))
+                .thenReturn(java.util.Optional.empty());
     }
 
     @AfterEach

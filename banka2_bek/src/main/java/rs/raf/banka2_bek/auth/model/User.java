@@ -51,9 +51,11 @@ public class User implements UserDetails {
     @Column(length = 255)
     private String saltPassword;
 
+    @org.hibernate.annotations.ColumnDefault("1")
     @Column(nullable = false)
     private boolean active = true;
 
+    @org.hibernate.annotations.ColumnDefault("'CLIENT'")
     @Column(nullable = false, length = 50)
     private String role = "CLIENT";
 

@@ -32,6 +32,7 @@ public class Currency {
     private String description;
 
     @Column(nullable = false)
+    @org.hibernate.annotations.ColumnDefault("1")
     @Builder.Default
     private Boolean active = true;
 }

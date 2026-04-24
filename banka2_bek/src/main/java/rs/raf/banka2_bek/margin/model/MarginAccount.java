@@ -77,10 +77,12 @@ public class MarginAccount {
     /** Status margin racuna (ACTIVE ili BLOCKED) */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
+    @org.hibernate.annotations.ColumnDefault("'ACTIVE'")
     @Builder.Default
     private MarginAccountStatus status = MarginAccountStatus.ACTIVE;
 
     @Column(name = "created_at", nullable = false, updatable = false)
+    @org.hibernate.annotations.ColumnDefault("CURRENT_TIMESTAMP")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 }

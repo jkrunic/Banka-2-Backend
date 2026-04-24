@@ -71,11 +71,13 @@ public class Exchange {
      * Kada je true, berza se smatra uvek otvorenom — koristi se za razvoj i testiranje.
      */
     @Column(nullable = false)
+    @org.hibernate.annotations.ColumnDefault("0")
     @Builder.Default
     private boolean testMode = false;
 
     /** Da li je berza aktivna (neaktivne berze se ne prikazuju klijentima) */
     @Column(nullable = false)
+    @org.hibernate.annotations.ColumnDefault("1")
     @Builder.Default
     private boolean active = true;
 

@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import rs.raf.banka2_bek.actuary.model.ActuaryInfo;
 import rs.raf.banka2_bek.actuary.model.ActuaryType;
 import rs.raf.banka2_bek.actuary.repository.ActuaryInfoRepository;
+import rs.raf.banka2_bek.auth.util.UserRole;
 import rs.raf.banka2_bek.order.model.OrderStatus;
 
 import java.math.BigDecimal;
@@ -26,7 +27,7 @@ public class OrderStatusService {
      * EMPLOYEE who is AGENT under dailyLimit → APPROVED
      */
     public OrderStatus determineStatus(String userRole, Long userId, BigDecimal approximatePrice) {
-        if ("CLIENT".equals(userRole)) {
+        if (UserRole.isClient(userRole)) {
             return OrderStatus.APPROVED;
         }
 
